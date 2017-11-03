@@ -10,7 +10,7 @@ AXES = ['x', 'y']
 DIRS = np.array([[-1, 0], [0, 1], [1, 0], [0, -1]])
 
 
-def read_image(filename='ex1.png'):
+def read_image(filename='ex5.png'):
     data = imread(filename, mode='RGB')
     exits = np.where(data[:, :, 0] - data[:, :, 1] > 200)
     obstacles = np.where(data[:, :, 1] < 100)
