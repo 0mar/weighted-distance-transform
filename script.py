@@ -123,7 +123,10 @@ def compute_distance_transform(u):
         for cell in new_candidate_cells:
             potential = compute_potential(cell, [u_x, u_y], phi)
             if cell in candidate_cells:
-                cand_heap.remove((candidate_cells[cell], cell))
+                i = cand_heap.index((candidate_cells[cell], cell))
+                cand_heap[i] = cand_heap[-1]
+                cand_heap.pop()
+                heapq.heapify(cand_heap)
             candidate_cells[cell] = potential
             heapq.heappush(cand_heap, (potential, cell))
         min_potential, best_cell = heapq.heappop(cand_heap)
