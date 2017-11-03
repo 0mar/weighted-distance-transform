@@ -118,13 +118,16 @@ def compute_distance_transform(u):
     unknown_cells = all_cells - known_cells - {cell for cell in zip(obstacle_locs[0], obstacle_locs[1])}
     new_candidate_cells = get_new_candidate_cells(known_cells, unknown_cells)
     candidate_cells = {cell: np.inf for cell in new_candidate_cells}
+    cand_heap = [(np.inf, cell) for cell in candidate_cells]
     while unknown_cells:
         for cell in new_candidate_cells:
             potential = compute_potential(cell, [u_x, u_y], phi)
+            if cell in candidate_cells:
+                cand_heap.remove((candidate_cells[cell], cell))
             candidate_cells[cell] = potential
-        sorted_candidates = sorted(candidate_cells.items(), key=operator.itemgetter(1))
-        best_cell = sorted_candidates[0][0]
-        min_potential = candidate_cells.pop(best_cell)
+            heapq.heappush(cand_heap, (potential, cell))
+        min_potential, best_cell = heapq.heappop(cand_heap)
+        candidate_cells.pop(best_cell)
         phi[best_cell] = min_potential
         unknown_cells.remove(best_cell)
         known_cells.add(best_cell)
