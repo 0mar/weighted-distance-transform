@@ -1,5 +1,11 @@
 import numpy as np
-from pot import compute_potential
+
+try:
+    from pot import compute_potential as call_compute_potential
+
+    fortran_lib = True
+except ImportError:
+    fortran_lib = False
 import math
 import heapq
 from scipy.misc import imread
@@ -41,7 +47,7 @@ def get_new_candidate_cells(new_known_cells, unknown_cells):
     return new_candidate_cells
 
 
-def compute_potehntial(cell, costs, potential):
+def compute_potential(cell, costs, potential):
     # Find the minimal directions along a grid cell.
     # Assume left and below are best, then overwrite with right and up if they are better
     adjacent_potentials = np.ones(4) * np.inf
@@ -114,10 +120,10 @@ def compute_distance_transform(u):
     cand_heap = [(np.inf, cell) for cell in candidate_cells]
     while unknown_cells:
         for cell in new_candidate_cells:
-            if True:
-                potential = compute_potential(cell[0], cell[1], nx, ny, phi, u_x, u_y, 99999)
+            if fortran_lib:
+                potential = call_compute_potential(cell[0], cell[1], nx, ny, phi, u_x, u_y, 99999)
             else:
-                potential = compute_potehntial(cell, [u_x, u_y], phi)
+                potential = compute_potential(cell, [u_x, u_y], phi)
             candidate_cells[cell] = potential
             # Don't check whether we have the potential already in the heap; check on outcome
             heapq.heappush(cand_heap, (potential, cell))
@@ -131,11 +137,6 @@ def compute_distance_transform(u):
         unknown_cells.remove(best_cell)
         known_cells.add(best_cell)
         new_candidate_cells = get_new_candidate_cells({best_cell}, unknown_cells)
-
-    # While there are unknown cells:
-    # Compute the value of the candidate cells from the known cells
-    # Pick the cheapest candidate cell, make it known
-    # Get new candidate cells and continue while
     return phi
 
 
@@ -149,5 +150,3 @@ time2 = time.time()
 print(time2 - time1)
 plt.imshow(phi)
 plt.show()
-
-# Improvements: -Sweep. -Fortran total. -Downgrade floats
