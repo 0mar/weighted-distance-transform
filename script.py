@@ -1,13 +1,14 @@
 import numpy as np
+from pot import compute_potential
 import math
 import heapq
 from scipy.misc import imread
-
+import time
 import operator
 
-DIR_STRINGS = ["left", "up", "right", "down"]
+DIR_STRINGS = ["left", "down", "right", "up"]
 AXES = ['x', 'y']
-DIRS = np.array([[-1, 0], [0, 1], [1, 0], [0, -1]])
+DIRS = np.array([[-1, 0], [0, -1], [1, 0], [0, 1]])
 
 
 def read_image(filename='ex5.png'):
@@ -41,7 +42,8 @@ def get_new_candidate_cells(new_known_cells, unknown_cells):
     return new_candidate_cells
 
 
-def compute_potential(cell, costs, potential):
+
+def compute_potehntial(cell, costs, potential):
     # Find the minimal directions along a grid cell.
     # Assume left and below are best, then overwrite with right and up if they are better
     adjacent_potentials = np.ones(4) * np.inf
@@ -102,31 +104,44 @@ def compute_distance_transform(u):
     # nx,ny = u.shape
 
     # Cost for moving along horizontal lines
-    u_x = np.ones([nx + 1, ny]) * np.inf
+    u_x = np.ones([nx + 1, ny],order='F') * np.inf
     u_x[1:-1, :] = (u[1:, :] + u[:-1, :]) / 2
     # Cost for moving along vertical lines
-    u_y = np.ones([nx, ny + 1]) * np.inf
+    u_y = np.ones([nx, ny + 1],order='F') * np.inf
     u_y[:, 1:-1] = (u[:, 1:] + u[:, :-1]) / 2
 
     # Initialize locations (known/unknown/exit/obstacle)
-    phi = np.ones_like(u) * np.inf
+    phi = np.ones_like(u,order='F') * np.inf
     exit_locs = np.where(u == 0)
     obstacle_locs = np.where(u == np.inf)
     phi[exit_locs] = 0
+    min_cost = min([np.min(u_x),np.min(u_y)])
+    sweepval = min_cost/np.sqrt(2)
+
+    # Initialize Cell structures
     all_cells = {(i, j) for i in range(nx) for j in range(ny)}
     known_cells = {cell for cell in zip(exit_locs[0], exit_locs[1])}
     unknown_cells = all_cells - known_cells - {cell for cell in zip(obstacle_locs[0], obstacle_locs[1])}
     new_candidate_cells = get_new_candidate_cells(known_cells, unknown_cells)
+    # candidate_array = np.zeros(phi.shape, dtype=int)
     candidate_cells = {cell: np.inf for cell in new_candidate_cells}
     cand_heap = [(np.inf, cell) for cell in candidate_cells]
     while unknown_cells:
         for cell in new_candidate_cells:
-            potential = compute_potential(cell, [u_x, u_y], phi)
+            if True:
+                potential = compute_potential(cell[0],cell[1],nx,ny,phi,u_x, u_y, 99999)
+            else:
+                potential = compute_potehntial(cell,[u_x,u_y],phi)
             if cell in candidate_cells:
+                # if potential > candidate_cells[cell]:
+                #     print("hoi")
+                #     continue
                 i = cand_heap.index((candidate_cells[cell], cell))
                 cand_heap[i] = cand_heap[-1]
                 cand_heap.pop()
-                heapq.heapify(cand_heap)
+                if i < len(cand_heap):
+                    heapq._siftup(cand_heap, i)
+                    heapq._siftdown(cand_heap, 0, i)
             candidate_cells[cell] = potential
             heapq.heappush(cand_heap, (potential, cell))
         min_potential, best_cell = heapq.heappop(cand_heap)
@@ -153,7 +168,11 @@ def compute_distance_transform(u):
 u = read_image()
 nx, ny = u.shape
 import matplotlib.pyplot as plt
-
+time1 = time.time()
 phi = compute_distance_transform(u)
+time2 = time.time()
+print(time2-time1)
 # plt.imshow(phi)
 # plt.show()
+
+# Improvements: -Sweep. -Fortran total. -Candidatecells set -> 2d Array -Downgrade floats
