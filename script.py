@@ -4,7 +4,6 @@ import math
 import heapq
 from scipy.misc import imread
 import time
-import operator
 
 DIR_STRINGS = ["left", "down", "right", "up"]
 AXES = ['x', 'y']
@@ -40,7 +39,6 @@ def get_new_candidate_cells(new_known_cells, unknown_cells):
             if nb_cell in unknown_cells:
                 new_candidate_cells.add(nb_cell)
     return new_candidate_cells
-
 
 
 def compute_potehntial(cell, costs, potential):
@@ -83,15 +81,6 @@ def compute_potehntial(cell, costs, potential):
     # Might not be obvious, but why we take the largest root is found in report.
     return x_high
 
-    # def set_edge_values(u,phi_x,phi_y,val):
-
-
-#     locs = np.where(u==val)
-#     phi_x[locs]=val
-#     phi_x[(locs[0],locs[1]+1)] = val
-#     phi_y[locs]=val
-#     phi_y[(locs[0]+1,locs[1])] = val
-#     # No return necessary
 
 def compute_distance_transform(u):
     """
@@ -104,47 +93,39 @@ def compute_distance_transform(u):
     # nx,ny = u.shape
 
     # Cost for moving along horizontal lines
-    u_x = np.ones([nx + 1, ny],order='F') * np.inf
+    u_x = np.ones([nx + 1, ny], order='F') * np.inf
     u_x[1:-1, :] = (u[1:, :] + u[:-1, :]) / 2
     # Cost for moving along vertical lines
-    u_y = np.ones([nx, ny + 1],order='F') * np.inf
+    u_y = np.ones([nx, ny + 1], order='F') * np.inf
     u_y[:, 1:-1] = (u[:, 1:] + u[:, :-1]) / 2
 
     # Initialize locations (known/unknown/exit/obstacle)
-    phi = np.ones_like(u,order='F') * np.inf
+    phi = np.ones_like(u, order='F') * np.inf
     exit_locs = np.where(u == 0)
     obstacle_locs = np.where(u == np.inf)
     phi[exit_locs] = 0
-    min_cost = min([np.min(u_x),np.min(u_y)])
-    sweepval = min_cost/np.sqrt(2)
 
     # Initialize Cell structures
     all_cells = {(i, j) for i in range(nx) for j in range(ny)}
     known_cells = {cell for cell in zip(exit_locs[0], exit_locs[1])}
     unknown_cells = all_cells - known_cells - {cell for cell in zip(obstacle_locs[0], obstacle_locs[1])}
     new_candidate_cells = get_new_candidate_cells(known_cells, unknown_cells)
-    # candidate_array = np.zeros(phi.shape, dtype=int)
     candidate_cells = {cell: np.inf for cell in new_candidate_cells}
     cand_heap = [(np.inf, cell) for cell in candidate_cells]
     while unknown_cells:
         for cell in new_candidate_cells:
             if True:
-                potential = compute_potential(cell[0],cell[1],nx,ny,phi,u_x, u_y, 99999)
+                potential = compute_potential(cell[0], cell[1], nx, ny, phi, u_x, u_y, 99999)
             else:
-                potential = compute_potehntial(cell,[u_x,u_y],phi)
-            if cell in candidate_cells:
-                # if potential > candidate_cells[cell]:
-                #     print("hoi")
-                #     continue
-                i = cand_heap.index((candidate_cells[cell], cell))
-                cand_heap[i] = cand_heap[-1]
-                cand_heap.pop()
-                if i < len(cand_heap):
-                    heapq._siftup(cand_heap, i)
-                    heapq._siftdown(cand_heap, 0, i)
+                potential = compute_potehntial(cell, [u_x, u_y], phi)
             candidate_cells[cell] = potential
+            # Don't check whether we have the potential already in the heap; check on outcome
             heapq.heappush(cand_heap, (potential, cell))
-        min_potential, best_cell = heapq.heappop(cand_heap)
+        popped_new_potential = False
+        while not popped_new_potential:
+            min_potential, best_cell = heapq.heappop(cand_heap)
+            if phi[best_cell] == np.inf:
+                popped_new_potential = True
         candidate_cells.pop(best_cell)
         phi[best_cell] = min_potential
         unknown_cells.remove(best_cell)
@@ -158,21 +139,15 @@ def compute_distance_transform(u):
     return phi
 
 
-# Example:
-"""
-- - - -
-* * * -
-- * - -
-- - - -
-"""
 u = read_image()
 nx, ny = u.shape
 import matplotlib.pyplot as plt
+
 time1 = time.time()
 phi = compute_distance_transform(u)
 time2 = time.time()
-print(time2-time1)
-# plt.imshow(phi)
-# plt.show()
+print(time2 - time1)
+plt.imshow(phi)
+plt.show()
 
-# Improvements: -Sweep. -Fortran total. -Candidatecells set -> 2d Array -Downgrade floats
+# Improvements: -Sweep. -Fortran total. -Downgrade floats
