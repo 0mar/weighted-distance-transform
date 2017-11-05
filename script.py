@@ -26,7 +26,10 @@ def read_image(filename='ex5.png'):
     return u
 
 
-# TODO: Change "potentials" to "distances"
+# TODO Change "potentials" to "distances"
+# TODO: Fix readimage
+# TODO: Comment code
+# TODO:
 def exists(index):
     """
     Checks whether an index exists an array
