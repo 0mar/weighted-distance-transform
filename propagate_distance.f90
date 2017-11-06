@@ -1,4 +1,4 @@
-subroutine compute_potential(cell_x,cell_y,n_x,n_y,pot_field,u_x,u_y,inf,out_pot)
+subroutine propagate_dist(cell_x,cell_y,n_x,n_y,pot_field,u_x,u_y,inf,out_pot)
 
 !   Compute the potential in a single cell with a first order upwind method
 implicit none

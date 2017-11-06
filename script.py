@@ -1,7 +1,7 @@
 import numpy as np
 
 try:
-    from pot import compute_potential as call_compute_potential
+    from wdt_fortran import propagate_distance as call_propagate_distance
 
     fortran_lib = True
 except ImportError:
@@ -44,23 +44,27 @@ def read_image(filename='ex2.png'):
     return cost_field
 
 
-# TODO Change "potentials" to "distances"
-# TODO: Fix readimage
-# TODO: Comment code
-# TODO:
+# TODO: Change sets to 2D arrays
+
 def exists(index):
     """
     Checks whether an index exists an array
     :param index: 2D index tuple
-    :param max_index: max index tuple
     :return: true if lower than tuple, false otherwise
     """
     return (0 <= index[0] < nx) and (0 <= index[1] < ny)
 
 
 def get_new_candidate_cells(new_known_cells, unknown_cells):
+    """
+    Compute the new candidate cells (cells for which we have no definite distance value yet
+    For more information on the algorithm: check fast marching method
+    :param new_known_cells: set of tuples; the new cells that have been added to the distance field
+    :param unknown_cells: set of tuples; all cells still unknown
+    :return: Set of new candidate cells for which to compute the distance
+    """
     new_candidate_cells = set()
-    for cell in new_known_cells:
+    for cell in new_known_cells: # Often just one cell
         for direction in DIRS:
             nb_cell = (cell[0] + direction[0], cell[1] + direction[1])
             if nb_cell in unknown_cells:
@@ -68,10 +72,17 @@ def get_new_candidate_cells(new_known_cells, unknown_cells):
     return new_candidate_cells
 
 
-def compute_potential(cell, costs, potential):
+def propagate_distance(cell, costs, wdt):
+    """
+    Compute the weighted distance in a cell using costs and distances in other cells
+    :param cell: tuple, index of a candidate cell
+    :param costs: list of cost arrays in X and Y direction
+    :param wdt: the weighted distance transform field up until now
+    :return: a approximate distance based on the neighbour cells
+    """
     # Find the minimal directions along a grid cell.
     # Assume left and below are best, then overwrite with right and up if they are better
-    adjacent_potentials = np.ones(4) * np.inf
+    adjacent_distances = np.ones(4) * np.inf
     pots_from_axis = [0, 0]  # [x direction, y direction]
     costs_from_axis = [np.inf, np.inf]  #
     for i, dir_s in enumerate(DIR_STRINGS):
@@ -80,8 +91,8 @@ def compute_potential(cell, costs, potential):
         nb_cell = (cell[0] + normal[0], cell[1] + normal[1])
         if not exists(nb_cell):
             continue
-        pot = potential[nb_cell]
-        # potential in that neighbour field
+        pot = wdt[nb_cell]
+        # distance in that neighbour field
         if dir_s == 'left':
             face_index = (nb_cell[0] + 1, nb_cell[1])
         elif dir_s == 'down':
@@ -91,9 +102,9 @@ def compute_potential(cell, costs, potential):
         # Left/right is x, up/down is y
         cost = costs[i % 2][face_index]
         # Proposed cost along this direction
-        adjacent_potentials[i] = pot + cost
+        adjacent_distances[i] = pot + cost
         # If it is cheaper to go from the opposite direction
-        if adjacent_potentials[i] < adjacent_potentials[(i + 2) % 4]:
+        if adjacent_distances[i] < adjacent_distances[(i + 2) % 4]:
             pots_from_axis[i % 2] = pot
             costs_from_axis[i % 2] = cost
         hor_pot, ver_pot = pots_from_axis
@@ -109,27 +120,30 @@ def compute_potential(cell, costs, potential):
     return x_high
 
 
-def compute_distance_transform(u):
+def get_weighted_distance_transform(cost_field):
     """
     Compute the weighted distance transform with cost/image function u using a fast marching algorithm
-    We compute the distance transform on a staggered grid: this is more precise
-    :param u: nonnegative 2D array with cost in each cell/pixel, infinity is allowed.
-    :return: weighted distance transform
+    We compute the distance transform with costs defined on a staggered grid for consistency.
+    This means that we use costs defined on the faces of cells, found by averaging values of the adjacent cells.
 
+    Starting from the exit, we march over each pixel with the lowest weighted distance,
+    until we found values for all pixels.
+    :param cost_field: nonnegative 2D array with cost in each cell/pixel, zero and infinity are allowed values.
+    :return: weighted distance transform
     """
 
     # Cost for moving along horizontal lines
-    u_x = np.ones([nx + 1, ny], order='F') * np.inf
-    u_x[1:-1, :] = (u[1:, :] + u[:-1, :]) / 2
+    costs_x = np.ones([nx + 1, ny], order='F') * np.inf
+    costs_x[1:-1, :] = (cost_field[1:, :] + cost_field[:-1, :]) / 2
     # Cost for moving along vertical lines
-    u_y = np.ones([nx, ny + 1], order='F') * np.inf
-    u_y[:, 1:-1] = (u[:, 1:] + u[:, :-1]) / 2
+    costs_y = np.ones([nx, ny + 1], order='F') * np.inf
+    costs_y[:, 1:-1] = (cost_field[:, 1:] + cost_field[:, :-1]) / 2
 
     # Initialize locations (known/unknown/exit/obstacle)
-    phi = np.ones_like(u, order='F') * np.inf
-    exit_locs = np.where(u == 0)
-    obstacle_locs = np.where(u == np.inf)
-    phi[exit_locs] = 0
+    wdt = np.ones_like(cost_field, order='F') * np.inf
+    exit_locs = np.where(cost_field == 0)
+    obstacle_locs = np.where(cost_field == np.inf)
+    wdt[exit_locs] = 0
 
     # Initialize Cell structures
     all_cells = {(i, j) for i in range(nx) for j in range(ny)}
@@ -138,28 +152,34 @@ def compute_distance_transform(u):
     new_candidate_cells = get_new_candidate_cells(known_cells, unknown_cells)
     candidate_cells = {cell: np.inf for cell in new_candidate_cells}
     cand_heap = [(np.inf, cell) for cell in candidate_cells]
+    # Loop until all unknown cells have a distance value
     while unknown_cells:
+        # by repeatedly looping over the new candidate cells
         for cell in new_candidate_cells:
+            # Compute a distance for each cell based on its neighbour cells
             if fortran_lib:
-                potential = call_compute_potential(cell[0], cell[1], nx, ny, phi, u_x, u_y, 99999)
+                distance = call_propagate_distance(cell[0], cell[1], nx, ny, wdt, costs_x, costs_y, 99999)
             else:
-                potential = compute_potential(cell, [u_x, u_y], phi)
-            candidate_cells[cell] = potential
-            # Don't check whether we have the potential already in the heap; check on outcome
-            heapq.heappush(cand_heap, (potential, cell))
-        popped_new_potential = False
-        while not popped_new_potential:
-            min_potential, best_cell = heapq.heappop(cand_heap)
-            if phi[best_cell] == np.inf:
-                popped_new_potential = True
-            elif min_potential == np.inf: # No more finite values; done
-                return phi
+                distance = propagate_distance(cell, [costs_x, costs_y], wdt)
+            # Store this value in the dictionary, and in the heap (for fast lookup)
+            candidate_cells[cell] = distance
+            # Don't check whether we have the distance already in the heap; check on outcome
+            heapq.heappush(cand_heap, (distance, cell))
+        popped_new_minimum = False
+        # See if the heap contains a good value and if so, add it to the field. If not, finish.
+        while not popped_new_minimum:
+            min_distance, best_cell = heapq.heappop(cand_heap)
+            if wdt[best_cell] == np.inf:
+                popped_new_minimum = True
+            elif min_distance == np.inf: # No more finite values; done
+                return wdt
+        # Good value found, add to the wdt and
         candidate_cells.pop(best_cell)
-        phi[best_cell] = min_potential
+        wdt[best_cell] = min_distance
         unknown_cells.remove(best_cell)
         known_cells.add(best_cell)
         new_candidate_cells = get_new_candidate_cells({best_cell}, unknown_cells)
-    return phi
+    return wdt
 
 
 u = read_image()
@@ -170,9 +190,9 @@ import matplotlib.pyplot as plt
 # plt.colorbar()
 # plt.show()
 time1 = time.time()
-phi = compute_distance_transform(u)
+phi = get_weighted_distance_transform(u)
 time2 = time.time()
 print(time2 - time1)
-plt.figure()
-plt.imshow(phi)
-plt.show()
+# plt.figure()
+# plt.imshow(phi)
+# plt.show()
