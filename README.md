@@ -35,14 +35,19 @@ cd weighted-distance-transform
 python3 setup.py install
 ```
 
-Run the script with some example figures (like `images/ex1.png`)
+### Usage:
+
+The original use case of this script is creating motion planners for 2D maps (in [crowd dynamics](https://symbols.hotell.kau.se/2016/11/30/mercurial/)). We identify goals with _red_, obstacles in _black_, and accessible space in _white_. 
+You can use any color (except full red) to indicate an area that is less easily accessible (and preferably should be avoided). The darker the colour (mapped to a greyscale), the more difficult it is to move through. 
+
+Once you created an image, you can provide it to the script as shown below. 
+Otherwise, run the script with some example figures (like `images/ex1.png`)
 
 ```python
 wdt = WDT('images/ex1.png')
 wdt.get_weighted_distance_transform()
 wdt.plot()
 ```
-End with an example of getting some data out of the system or using it for a little demo
 
 ## Authors
 
