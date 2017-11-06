@@ -22,7 +22,7 @@ class WDT:
         data = imread(filename, mode='RGB')
         self.cost_field = WDT.convert_image_to_cost_field(data)
         self.nx, self.ny = self.cost_field.shape
-        self.weighted_distance_transform = None
+        self.weighted_distance_transform = self.get_weighted_distance_transform()
 
     @staticmethod
     def convert_image_to_cost_field(data):
@@ -186,7 +186,9 @@ class WDT:
 
     def plot(self):
         plt.imshow(self.weighted_distance_transform)
+        plt.colorbar()
         plt.show()
 
 
-wdt = WDT('images/ex1.png').get_weighted_distance_transform()
+wdt = WDT('images/ex2.png')
+wdt.plot()
