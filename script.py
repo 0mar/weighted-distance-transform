@@ -25,6 +25,7 @@ class WDT:
         data = imread(filename, mode='RGB')
         self.cost_field = WDT.convert_image_to_cost_field(data)
         self.nx, self.ny = self.cost_field.shape
+        self.weighted_distance_transform = None
 
     @staticmethod
     def convert_image_to_cost_field(data):
@@ -78,7 +79,7 @@ class WDT:
                 new_candidate_cells.add(nb_cell)
         return new_candidate_cells
 
-    def propagate_distance(self, cell, costs, wdt_array):
+    def propagate_distance(self, cell, costs):
         """
         Compute the weighted distance in a cell using costs and distances in other cells
         :param cell: tuple, index of a candidate cell
@@ -97,7 +98,7 @@ class WDT:
             nb_cell = (cell[0] + normal[0], cell[1] + normal[1])
             if not self._exists(nb_cell):
                 continue
-            pot = wdt_array[nb_cell]
+            pot = self.weighted_distance_transform[nb_cell]
             # distance in that neighbour field
             if dir_s == 'left':
                 face_index = (nb_cell[0] + 1, nb_cell[1])
@@ -145,10 +146,10 @@ class WDT:
         costs_y[:, 1:-1] = (self.cost_field[:, 1:] + self.cost_field[:, :-1]) / 2
 
         # Initialize locations (known/unknown/exit/obstacle)
-        wdt = np.ones_like(self.cost_field, order='F') * np.inf
+        self.weighted_distance_transform = np.ones_like(self.cost_field, order='F') * np.inf
         exit_locs = np.where(self.cost_field == 0)
         obstacle_locs = np.where(self.cost_field == np.inf)
-        wdt[exit_locs] = 0
+        self.weighted_distance_transform[exit_locs] = 0
 
         # Initialize Cell structures
         all_cells = {(i, j) for i in range(self.nx) for j in range(self.ny)}
@@ -165,9 +166,10 @@ class WDT:
             for cell in new_candidate_cells:
                 # Compute a distance for each cell based on its neighbour cells
                 if fortran_lib:
-                    distance = call_propagate_distance(cell[0], cell[1], self.nx, self.ny, wdt, costs_x, costs_y, 99999)
+                    distance = call_propagate_distance(cell[0], cell[1], self.nx, self.ny,
+                                                       self.weighted_distance_transform, costs_x, costs_y, 99999)
                 else:
-                    distance = self.propagate_distance(cell, [costs_x, costs_y], wdt)
+                    distance = self.propagate_distance(cell, [costs_x, costs_y])
                 # Store this value in the dictionary, and in the heap (for fast lookup)
                 candidate_cells[cell] = distance
                 # Don't check whether we have the distance already in the heap; check on outcome
@@ -176,20 +178,26 @@ class WDT:
             # See if the heap contains a good value and if so, add it to the field. If not, finish.
             while not popped_new_minimum:
                 min_distance, best_cell = heapq.heappop(cand_heap)
-                if wdt[best_cell] == np.inf:
+                if self.weighted_distance_transform[best_cell] == np.inf:
                     popped_new_minimum = True
                 elif min_distance == np.inf:  # No more finite values; done
-                    return wdt
+                    return self.weighted_distance_transform
             # Good value found, add to the wdt and
             candidate_cells.pop(best_cell)
-            wdt[best_cell] = min_distance
+            self.weighted_distance_transform[best_cell] = min_distance
             unknown_cells.remove(best_cell)
             known_cells.add(best_cell)
             new_candidate_cells = self.get_new_candidate_cells(best_cell, unknown_cells)
-        return wdt
+        return self.weighted_distance_transform
 
 
-u = WDT()
-phi = WDT.get_weighted_distance_transform(u)
+wdt = WDT()
+# plt.imshow(u)
+# plt.show()
+time1 = time.time()
+phi = wdt.get_weighted_distance_transform()
+time2 = time.time()
+print(time2 - time1)
+# plt.figure()
 plt.imshow(phi)
 plt.show()
