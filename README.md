@@ -2,9 +2,9 @@
 A Python implementation for computing a weighted distance transform of an image.
 
 A [distance transform](https://en.wikipedia.org/wiki/Distance_transform) is a map of an image that assign to each pixel its distance to the nearest boundary.
-A weighted distance transform extends this by allowing for ... weighted distances. Useful for image analysis or path finding
+A weighted distance transform extends this by allowing for ... weighted distances. Useful for image analysis or path finding.
 
-This script implements a fast marching algorithm in Python with some acceleration in Fortran (if a Fortran compiler is present)
+This script implements a fast marching algorithm in Python with some acceleration in Fortran (if a Fortran compiler is present).
 
 ### Prerequisites
 
@@ -13,11 +13,12 @@ This script implements a fast marching algorithm in Python with some acceleratio
  * Matplotlib for plotting images (not required)
  * Fortran compiler for the acceleration (recommended, not required)
 
-```
-Give examples
-```
-Input: A PNG/JPG image with with boundaries/exits from which to compute the distance (red), obstacles (full black), normal space (white), less 'accessible space' (grey-ish)
-Output: A distance transform. Image plotted in Matplotlib
+### How does it work?
+
+![Image with text](/images/example.png?raw=true "Example image")
+Input (left): A PNG/JPG image with with boundaries/exits from which to compute the distance (red), obstacles (full black), normal space (white), less 'accessible space' (grey-ish).
+
+Output (right): A distance transform. Image plotted in Matplotlib.
 ### Installing
 
 Installing uses Distutils with NumPy's extensions
@@ -39,10 +40,8 @@ Run the script with some example figures (like `images/ex1.png`)
 
 ```python
 wdt = WDT('images/ex1.png')
-wdt.get_weighted_distance_transform()
 wdt.plot()
 ```
-End with an example of getting some data out of the system or using it for a little demo
 
 ## Authors
 
@@ -50,7 +49,7 @@ End with an example of getting some data out of the system or using it for a lit
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## References
 
