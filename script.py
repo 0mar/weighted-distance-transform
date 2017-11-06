@@ -158,8 +158,7 @@ class WDT:
         new_candidate_cells = set()
         for cell in known_cells:
             new_candidate_cells |= self.get_new_candidate_cells(cell, unknown_cells)
-        candidate_cells = {cell: np.inf for cell in new_candidate_cells}
-        cand_heap = [(np.inf, cell) for cell in candidate_cells]
+        cand_heap = [(np.inf, cell) for cell in new_candidate_cells]
         # Loop until all unknown cells have a distance value
         while unknown_cells:
             # by repeatedly looping over the new candidate cells
@@ -171,22 +170,20 @@ class WDT:
                 else:
                     distance = self.propagate_distance(cell, [costs_x, costs_y])
                 # Store this value in the dictionary, and in the heap (for fast lookup)
-                candidate_cells[cell] = distance
                 # Don't check whether we have the distance already in the heap; check on outcome
                 heapq.heappush(cand_heap, (distance, cell))
-            popped_new_minimum = False
             # See if the heap contains a good value and if so, add it to the field. If not, finish.
-            while not popped_new_minimum:
+            # Since we can store multiple distance values for one cell, we might need to pop a couple of times
+            while True:
                 min_distance, best_cell = heapq.heappop(cand_heap)
                 if self.weighted_distance_transform[best_cell] == np.inf:
-                    popped_new_minimum = True
+                    # Got a good one: no assigned distance in wdt yet
+                    break
                 elif min_distance == np.inf:  # No more finite values; done
                     return self.weighted_distance_transform
             # Good value found, add to the wdt and
-            candidate_cells.pop(best_cell)
             self.weighted_distance_transform[best_cell] = min_distance
             unknown_cells.remove(best_cell)
-            known_cells.add(best_cell)
             new_candidate_cells = self.get_new_candidate_cells(best_cell, unknown_cells)
         return self.weighted_distance_transform
 
