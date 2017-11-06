@@ -18,7 +18,7 @@ class WDT:
     DIR_STRINGS = ["left", "down", "right", "up"]
     DIRS = ((-1, 0), (0, -1), (1, 0), (0, 1))
 
-    def __init__(self, filename='ex2.png'):
+    def __init__(self, filename='images/ex1.png'):
         data = imread(filename, mode='RGB')
         self.cost_field = WDT.convert_image_to_cost_field(data)
         self.nx, self.ny = self.cost_field.shape
@@ -184,8 +184,9 @@ class WDT:
             new_candidate_cells = self.get_new_candidate_cells(best_cell, unknown_cells)
         return self.weighted_distance_transform
 
+    def plot(self):
+        plt.imshow(self.weighted_distance_transform)
+        plt.show()
 
-wdt = WDT()
-phi = wdt.get_weighted_distance_transform()
-plt.imshow(phi)
-plt.show()
+
+wdt = WDT('images/ex1.png').get_weighted_distance_transform()
