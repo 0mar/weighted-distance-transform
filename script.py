@@ -13,7 +13,7 @@ from scipy.misc import imread
 import time
 
 DIR_STRINGS = ["left", "down", "right", "up"]
-DIRS = np.array([[-1, 0], [0, -1], [1, 0], [0, 1]])
+DIRS = ((-1, 0), (0, -1), (1, 0), (0, 1))
 
 
 def read_image(filename='ex2.png'):
@@ -46,6 +46,7 @@ def read_image(filename='ex2.png'):
 
 
 # TODO: Change sets to 2D arrays
+# Todo: Make object oriented
 
 def exists(index):
     """
@@ -56,7 +57,7 @@ def exists(index):
     return (0 <= index[0] < nx) and (0 <= index[1] < ny)
 
 
-def get_new_candidate_cells(new_known_cells, unknown_cells):
+def get_new_candidate_cells(cell, unknown_cells):
     """
     Compute the new candidate cells (cells for which we have no definite distance value yet
     For more information on the algorithm: check fast marching method
@@ -65,11 +66,10 @@ def get_new_candidate_cells(new_known_cells, unknown_cells):
     :return: Set of new candidate cells for which to compute the distance
     """
     new_candidate_cells = set()
-    for cell in new_known_cells: # Often just one cell
-        for direction in DIRS:
-            nb_cell = (cell[0] + direction[0], cell[1] + direction[1])
-            if nb_cell in unknown_cells:
-                new_candidate_cells.add(nb_cell)
+    for direction in DIRS:
+        nb_cell = (cell[0] + direction[0], cell[1] + direction[1])
+        if nb_cell in unknown_cells:
+            new_candidate_cells.add(nb_cell)
     return new_candidate_cells
 
 
@@ -150,7 +150,9 @@ def get_weighted_distance_transform(cost_field):
     all_cells = {(i, j) for i in range(nx) for j in range(ny)}
     known_cells = {cell for cell in zip(exit_locs[0], exit_locs[1])}
     unknown_cells = all_cells - known_cells - {cell for cell in zip(obstacle_locs[0], obstacle_locs[1])}
-    new_candidate_cells = get_new_candidate_cells(known_cells, unknown_cells)
+    new_candidate_cells = set()
+    for cell in known_cells:
+        new_candidate_cells |= get_new_candidate_cells(cell, unknown_cells)
     candidate_cells = {cell: np.inf for cell in new_candidate_cells}
     cand_heap = [(np.inf, cell) for cell in candidate_cells]
     # Loop until all unknown cells have a distance value
@@ -179,7 +181,7 @@ def get_weighted_distance_transform(cost_field):
         wdt[best_cell] = min_distance
         unknown_cells.remove(best_cell)
         known_cells.add(best_cell)
-        new_candidate_cells = get_new_candidate_cells({best_cell}, unknown_cells)
+        new_candidate_cells = get_new_candidate_cells(best_cell, unknown_cells)
     return wdt
 
 
