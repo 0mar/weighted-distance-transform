@@ -1,10 +1,11 @@
 import numpy as np
 
 try:
-    from wdt_fortran import propagate_distance as call_propagate_distance
+    from fortran_modules.wdt_fortran import propagate_dist as call_propagate_distance
 
     fortran_lib = True
 except ImportError:
+    print("No Fortran modules found, falling back on python implementation")
     fortran_lib = False
 import math
 import heapq
