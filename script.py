@@ -14,9 +14,6 @@ import time
 import matplotlib.pyplot as plt
 
 
-# TODO: Change sets to 2D arrays
-
-
 class WDT:
     DIR_STRINGS = ["left", "down", "right", "up"]
     DIRS = ((-1, 0), (0, -1), (1, 0), (0, 1))
@@ -189,12 +186,6 @@ class WDT:
 
 
 wdt = WDT()
-# plt.imshow(u)
-# plt.show()
-time1 = time.time()
 phi = wdt.get_weighted_distance_transform()
-time2 = time.time()
-print(time2 - time1)
-# plt.figure()
 plt.imshow(phi)
 plt.show()
