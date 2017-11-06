@@ -12,18 +12,36 @@ from scipy.misc import imread
 import time
 
 DIR_STRINGS = ["left", "down", "right", "up"]
-AXES = ['x', 'y']
 DIRS = np.array([[-1, 0], [0, -1], [1, 0], [0, 1]])
 
 
-def read_image(filename='ex5.png'):
+def read_image(filename='ex2.png'):
+    """
+    Read an image and convert it to a *landscape*, a 2D array with cost fields.
+    This cost field forms the input for the weighted distance transform
+    zero costs denote exits, infinite costs denote obstacles.
+    For now, we follow previous Mercurial standards: obstacles are in black, exits in red.
+    Accessible space is in white, less accessible space has less white.
+    :param filename: file of the PNG/JPEG image to be read
+    :return: 2D array representing the cost field
+    """
     data = imread(filename, mode='RGB')
-    exits = np.where(data[:, :, 0] - data[:, :, 1] > 200)
-    obstacles = np.where(data[:, :, 1] < 100)
-    u = np.ones(data[:, :, 0].shape)
-    u[obstacles] = np.inf
-    u[exits] = 0
-    return u
+    # Exits are present in all red enough places ("R >> BG")
+    exits = np.where(data[:, :, 0] - (data[:, :, 1] + data[:, :, 2]) / 2 > 160)
+    # Obstacles are in black (so at least G and B must be zero)
+    obstacles = np.where(data[:, :, 1] + data[:, :, 2] == 0)
+    # Convert image to greyscale
+    grey_scales = np.dot(data[..., :3], [0.299, 0.587, 0.114])
+    # Boolean index array for places without exits and obstacles
+    space = np.ones(grey_scales.shape, dtype=np.bool)
+    space[exits] = False
+    space[obstacles] = False
+    # Cost field: Inversely proportional to greyscale values
+    cost_field = np.empty(data[:, :, 0].shape)
+    cost_field[obstacles] = np.inf
+    cost_field[exits] = 0
+    cost_field[space] = 1. / grey_scales[space]
+    return cost_field
 
 
 # TODO Change "potentials" to "distances"
@@ -81,7 +99,7 @@ def compute_potential(cell, costs, potential):
         hor_pot, ver_pot = pots_from_axis
         hor_cost, ver_cost = costs_from_axis
         # Coefficients of quadratic equation (upwind discretization)
-    a = 1 / hor_cost ** 2 + 1 / ver_cost ** 2
+    a = 1. / hor_cost ** 2 + 1. / ver_cost ** 2
     b = -2 * (hor_pot / hor_cost ** 2 + ver_pot / ver_cost ** 2)
     c = (hor_pot / hor_cost) ** 2 + (ver_pot / ver_cost) ** 2 - 1
 
@@ -99,7 +117,6 @@ def compute_distance_transform(u):
     :return: weighted distance transform
 
     """
-    # nx,ny = u.shape
 
     # Cost for moving along horizontal lines
     u_x = np.ones([nx + 1, ny], order='F') * np.inf
@@ -135,6 +152,8 @@ def compute_distance_transform(u):
             min_potential, best_cell = heapq.heappop(cand_heap)
             if phi[best_cell] == np.inf:
                 popped_new_potential = True
+            elif min_potential == np.inf: # No more finite values; done
+                return phi
         candidate_cells.pop(best_cell)
         phi[best_cell] = min_potential
         unknown_cells.remove(best_cell)
@@ -146,10 +165,14 @@ def compute_distance_transform(u):
 u = read_image()
 nx, ny = u.shape
 import matplotlib.pyplot as plt
-
+# print("min",np.min(u),"max",np.max(u[u<np.inf]))
+# plt.imshow(u)
+# plt.colorbar()
+# plt.show()
 time1 = time.time()
 phi = compute_distance_transform(u)
 time2 = time.time()
 print(time2 - time1)
+plt.figure()
 plt.imshow(phi)
 plt.show()
