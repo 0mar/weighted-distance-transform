@@ -11,7 +11,7 @@ This script implements a fast marching algorithm in Python with some acceleratio
  * Python 3 (but no real obstacles for Python 2)
  * Numpy/Scipy and the python imaging library (PIL)
  * Matplotlib for plotting images (not required)
- * Fortran compiler for the acceleration (recommended, not required)
+ * Fortran compiler, makes script significantly faster (recommended, not required)
 
 ### How does it work?
 
@@ -21,7 +21,7 @@ Input (left): A PNG/JPG image with with boundaries/exits from which to compute t
 Output (right): A distance transform. Image plotted in Matplotlib.
 ### Installing
 
-Installing uses Distutils with NumPy's extensions
+Installing uses `setuptools` from distutils with NumPy extensions.
 
 Clone the repository
 
@@ -53,7 +53,7 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## References
 
-Algorithms by
+Algorithms inspired by
 * [Tsitsiklis](http://www.mit.edu/~jnt/dijkstra.html)
 * [Treuille et al.](http://grail.cs.washington.edu/projects/crowd-flows/78-treuille.pdf)
 
