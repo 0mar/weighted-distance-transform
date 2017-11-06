@@ -2,7 +2,7 @@
 A Python implementation for computing a weighted distance transform of an image.
 
 A [distance transform](https://en.wikipedia.org/wiki/Distance_transform) is a map of an image that assign to each pixel its distance to the nearest boundary.
-A weighted distance transform extends this by allowing for ... weighted distances. Useful for image analysis or path finding.
+A weighted distance transform extends this by allowing for ... weighted distances. Useful for image analysis or computing potential functions in path finding.
 
 This script implements a fast marching algorithm in Python with some acceleration in Fortran (if a Fortran compiler is present).
 
