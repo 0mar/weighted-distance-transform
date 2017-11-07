@@ -1,7 +1,7 @@
 import numpy as np
 
 try:
-    from fortran_modules.wdt_fortran import propagate_dist as call_propagate_distance
+    from lib.wdt_fortran import propagate_dist as call_propagate_distance
 
     fortran_lib = True
 except ImportError:
@@ -134,7 +134,7 @@ class WDT:
         :param cost_field: nonnegative 2D array with cost in each cell/pixel, zero and infinity are allowed values.
         :return: weighted distance transform
         """
-
+        # Todo: Replace Unknown cells with 2D array
         # Cost for moving along horizontal lines
         costs_x = np.ones([self.nx + 1, self.ny], order='F') * np.inf
         costs_x[1:-1, :] = (self.cost_field[1:, :] + self.cost_field[:-1, :]) / 2
@@ -157,7 +157,7 @@ class WDT:
             new_candidate_cells |= self.get_new_candidate_cells(cell, unknown_cells)
         cand_heap = [(np.inf, cell) for cell in new_candidate_cells]
         # Loop until all unknown cells have a distance value
-        while unknown_cells:
+        while True:
             # by repeatedly looping over the new candidate cells
             for cell in new_candidate_cells:
                 # Compute a distance for each cell based on its neighbour cells
@@ -166,7 +166,7 @@ class WDT:
                                                        self.weighted_distance_transform, costs_x, costs_y, 99999)
                 else:
                     distance = self.propagate_distance(cell, [costs_x, costs_y])
-                # Store this value in the dictionary, and in the heap (for fast lookup)
+                # Store this value in the heap (for fast lookup)
                 # Don't check whether we have the distance already in the heap; check on outcome
                 heapq.heappush(cand_heap, (distance, cell))
             # See if the heap contains a good value and if so, add it to the field. If not, finish.
@@ -182,13 +182,13 @@ class WDT:
             self.weighted_distance_transform[best_cell] = min_distance
             unknown_cells.remove(best_cell)
             new_candidate_cells = self.get_new_candidate_cells(best_cell, unknown_cells)
-        return self.weighted_distance_transform
 
     def plot(self):
         plt.imshow(self.weighted_distance_transform)
         plt.colorbar()
         plt.show()
 
-
+time1 = time.time()
 wdt = WDT('images/ex2.png')
+print(time.time() - time1)
 wdt.plot()
