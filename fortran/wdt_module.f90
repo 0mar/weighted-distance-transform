@@ -174,8 +174,8 @@ end module wdt_module
 
 program test_wdt
     implicit none
-    integer (kind=4), parameter :: n_x=900
-    integer (kind=4), parameter :: n_y=600
+    integer (kind=4), parameter :: n_x=400
+    integer (kind=4), parameter :: n_y=500
     integer (kind=4) :: i,j
     real (kind=8), dimension(0:n_x-1,0:n_y-1) :: cost_field,wdt_field
     real (kind=8), parameter :: obstacle_value = 2000
@@ -190,7 +190,7 @@ program test_wdt
     cost_field(1,1) = 0
     cost_field(0:3,2) = 0
     cost_field(3,1:3)= obstacle_value
-    cost_field(500,:) = obstacle_value
+    cost_field(50,:) = obstacle_value
     call weighted_distance_transform(cost_field,wdt_field,n_x,n_y,obstacle_value)
 end program
 
@@ -217,11 +217,13 @@ integer (kind=4), dimension(0:n_x-1,0:n_y-1) :: cell_indicators
 integer (kind=4) :: cell_x,cell_y
 integer (kind=4) :: num_cand_cells
 real (kind=8) :: dist, min_dist
+real time1,time2,time3
 
 nx = n_x
 ny = n_y
 obstacle_value = obs_val
 unknown_value = obs_val + 1
+call cpu_time(time1)
 ! Cost for moving along horizontal lines
 ! Todo: I don't think we ever access the outer boundary of the costs_x/y array
 costs_x = obstacle_value
@@ -257,13 +259,14 @@ enddo
 ! nb_values = new_candidate_cells(2,1,wdt_field)
 ! print*,nb_values
 ! deallocate(nb_values)
+call cpu_time(time2)
 do while (.true.)
     ! Find the minimal distance to add to the field
     min_dist = obstacle_value
     min_i = -1
     min_j = -1
-    do i=0,nx-1
-        do j=1,ny-1
+    do j=1,ny-1
+        do i=0,nx-1
             if (cell_indicators(i,j)>=CANDIDATE) then
                 ! Compute distances for all new candidate cells
                 if (cell_indicators(i,j) == NEW_CANDIDATE) then
@@ -292,6 +295,8 @@ do while (.true.)
         call add_candidate_cells(min_i,min_j,cell_indicators,nx,ny)
     end if
 end do
-
+call cpu_time(time3)
+write(*,*)(time2-time1)
+write(*,*)(time3-time2)
 end subroutine
 
