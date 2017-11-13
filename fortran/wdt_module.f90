@@ -17,13 +17,12 @@ module wdt_module
     integer (KIND=4), parameter :: NEW_CANDIDATE = 3
 
 contains
-
-    function new_candidate_cells(cell_x,cell_y,wdt_field) result(cand_cells)
+    subroutine new_candidate_cells(cell_x,cell_y,wdt_field,n_x,n_y,cand_cells)
         implicit none
         ! Find new candidate cells
-        integer (kind=4), intent(in) :: cell_x,cell_y
-        real (kind=8), dimension(0:nx-1,0:ny-1), intent(in) :: wdt_field
-        integer (kind=4), dimension(0:3,0:1) :: cand_cells 
+        integer (kind=4), intent(in) :: cell_x,cell_y,n_x,n_y
+        real (kind=8), dimension(0:n_x-1,0:n_y-1), intent(in) :: wdt_field
+        integer (kind=4), dimension(0:3,0:1), intent(out) :: cand_cells
         integer (kind=4) :: direction,nb_x,nb_y
         cand_cells = -1
         do direction=0,3
@@ -36,7 +35,7 @@ contains
                 end if
             end if
         end do
-    end function new_candidate_cells
+    end subroutine
 
     subroutine propagate_dist(cell_x,cell_y,wdt_field,costs_x,costs_y,nx,ny,out_pot)
     !   Compute the potential in a single cell with a first order upwind method
@@ -215,7 +214,7 @@ do while (.true.)
     end if
     call cand_heap%pop(best_cell)
 
-    new_cand_cells = new_candidate_cells(best_cell(0),best_cell(1),wdt_field)
+    call new_candidate_cells(best_cell(0),best_cell(1),wdt_field,n_x,n_y,new_cand_cells)
     do l=0,3
         i = new_cand_cells(l,0)
         if (i >=0) then
