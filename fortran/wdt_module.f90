@@ -1,6 +1,6 @@
 module wdt_module
     implicit none
-    public :: exists, add_candidate_cells, propagate_dist
+    public :: exists, propagate_dist
     public :: nx,ny,obstacle_value,unknown_value
     public :: LEFT, DOWN, RIGHT, UP, NUM_DIRS, KNOWN, UNKNOWN, CANDIDATE, NEW_CANDIDATE
     integer (kind=4) :: nx,ny,obstacle_value,unknown_value
@@ -16,7 +16,6 @@ module wdt_module
     integer (KIND=4), parameter :: CANDIDATE = 2
     integer (KIND=4), parameter :: NEW_CANDIDATE = 3
 
-
 contains
 
     function new_candidate_cells(cell_x,cell_y,wdt_field) result(cand_cells)
@@ -24,7 +23,7 @@ contains
         ! Find new candidate cells
         integer (kind=4), intent(in) :: cell_x,cell_y
         real (kind=8), dimension(0:nx-1,0:ny-1), intent(in) :: wdt_field
-        integer (kind=4), dimension(0:3,0:1) :: cand_cells !DON'T mark intent out
+        integer (kind=4), dimension(0:3,0:1) :: cand_cells 
         integer (kind=4) :: direction,nb_x,nb_y
         cand_cells = -1
         do direction=0,3
@@ -38,29 +37,11 @@ contains
             end if
         end do
     end function new_candidate_cells
-    subroutine add_candidate_cells(cell_x,cell_y, cell_indicators,nx,ny)
-        implicit none
-        integer (kind=4) :: cell_x,cell_y, nx,ny
-        integer (kind=4), dimension(0:nx-1,0:ny-1) :: cell_indicators
-        integer (kind=4) :: direction
-        integer (kind=4) :: nb_x,nb_y
-
-        do direction=0,3
-            nb_x = sign(mod(direction+1,2),direction-1) + cell_x
-            nb_y = sign(mod(direction,2),direction-2) + cell_y
-            if (exists(nb_x,nb_y)==1)  then
-				if (cell_indicators(nb_x,nb_y)>=UNKNOWN) then
-                    cell_indicators(nb_x,nb_y) = NEW_CANDIDATE
-                end if
-            end if
-        end do
-        end subroutine add_candidate_cells
 
     subroutine propagate_dist(cell_x,cell_y,wdt_field,costs_x,costs_y,nx,ny,out_pot)
-    ! Todo: Can we make it faster by passing just the relevant array?
     !   Compute the potential in a single cell with a first order upwind method
     implicit none
-    integer (kind=4) :: cell_x,cell_y,nx,ny
+    integer (kind=4),intent(in) :: cell_x,cell_y,nx,ny
     real (kind=8) :: a,b,c,D ! parameters for upwind approximation
     integer (kind=4) :: normal_x,normal_y,face_index_x,face_index_y! Administration
     integer (kind=4) :: nb_cell_x,nb_cell_y! neighbour indices
@@ -68,11 +49,12 @@ contains
 
     integer (kind=4) :: direction
 
-    real (kind=8), dimension(0:nx-1,0:ny-1) :: wdt_field
-    real (kind=8), dimension(0:nx,0:ny-1) :: costs_x
-    real (kind=8), dimension(0:nx-1,0:ny) :: costs_y
+    real (kind=8), dimension(0:nx-1,0:ny-1), intent(in) :: wdt_field
+    real (kind=8), dimension(0:nx,0:ny-1), intent(in) :: costs_x
+    real (kind=8), dimension(0:nx-1,0:ny), intent(in) :: costs_y
     real (kind=8), dimension(0:3) :: neighbour_pots
-    real (kind=8) :: pot, out_pot,cost
+    real (kind=8) :: pot,cost
+    real (kind=8), intent(out) :: out_pot
 
     neighbour_pots=  (/ obstacle_value, obstacle_value, obstacle_value, obstacle_value /) 
     hor_cost = obstacle_value
@@ -146,12 +128,9 @@ contains
         b = -2. * (hor_potential / (hor_cost * hor_cost) + ver_potential / (ver_cost * ver_cost))
         c = (hor_potential / hor_cost) * (hor_potential / hor_cost) + (ver_potential / ver_cost) * (ver_potential / ver_cost) - 1
     endif
-
     D = b*b-4.*a*c
-
     out_pot = (-b + sqrt(D)) / (2.*a)
     end subroutine
-
 
     function exists(cell_x,cell_y) result(ex)
         implicit none
@@ -166,11 +145,100 @@ contains
     end function exists
 end module wdt_module
 
-! TODO: Ideas for optimization:
-! - intent in/out/inout
-! - [..,..]/dimension(..,..)
-! - Increase the size of the array by one so all `exists` can be tossed out
-! - Check indices in looping
+subroutine weighted_distance_transform(cost_field,wdt_field,n_x,n_y,obs_val)
+    ! Todo: Somehow make sure I don't have to input the n_x/n_y in Python
+use wdt_module
+use mheap
+implicit none
+!   Compute the potential in a single cell with a first order upwind method
+!f2py intent(in) cost_field,obs_val,n_x,n_y
+!f2py depend(n_x,n_y) cost_field,wdt_field
+!f2py intent(out) wdt_field
+!f2py integer, intent(aux)nx,ny
+integer (kind=4) :: nb_cell_x,nb_cell_y,n_x,n_y
+real (kind=8):: hor_potential,ver_potential,hor_cost,ver_cost,obs_val
+
+integer (kind=4) :: direction
+integer (kind=4), dimension(:,:), allocatable :: nb_values
+integer (kind=4), dimension(0:3,0:1) :: new_cand_cells
+integer (kind=4), dimension(0:1) :: best_cell
+type(THEAP) :: cand_heap
+
+integer (kind=4) :: i,j, min_i,min_j,k,l
+real (kind=8), dimension(0:n_x-1,0:n_y-1) :: cost_field,wdt_field
+real (kind=8), dimension(0:n_x,0:n_y-1) :: costs_x
+real (kind=8), dimension(0:n_x-1,0:n_y) :: costs_y
+integer (kind=4), dimension(0:n_x-1,0:n_y-1) :: cell_indicators
+integer (kind=4) :: cell_x,cell_y
+integer (kind=4) :: num_cand_cells,heap_capacity
+real (kind=8) :: dist, min_dist
+real time1,time2,time3
+
+nx = n_x
+ny = n_y
+obstacle_value = obs_val
+unknown_value = obs_val + 1
+heap_capacity = (n_x+n_y)*10 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
+call cpu_time(time1)
+! Cost for moving along horizontal lines
+costs_x = obstacle_value
+costs_x(1:n_x-1,:) = (cost_field(1:n_x-1,:) + cost_field(0:n_x-2,:))/2
+! Cost for moving along vertical lines
+costs_y = obstacle_value
+costs_y(:,1:n_y-1) = (cost_field(:,1:n_y-1) + cost_field(:,0:n_y-2))/2
+
+!Initialize locations (known(exit/obstacles)/unknown)
+wdt_field = unknown_value 
+cell_indicators = UNKNOWN 
+call cand_heap%init(heap_capacity,2,smaller)
+
+do j=0,n_y-1
+	do i=0,n_x-1
+        if (cost_field(i,j)==0) then
+            ! No cost, so this is an exit
+            wdt_field(i,j) = 0
+            cell_indicators(i,j) = KNOWN
+            call cand_heap%insert([i,j])
+        elseif (cost_field(i,j)>=obstacle_value) then
+            ! 'infinite cost', so this is an obstacle
+            wdt_field(i,j) = obstacle_value
+            cell_indicators(i,j) = KNOWN
+        endif
+    enddo
+enddo
+call cpu_time(time2)
+
+! Iteration of level set
+do while (.true.)
+    if (cand_heap%n==0) then
+        exit
+    end if
+    call cand_heap%pop(best_cell)
+
+    new_cand_cells = new_candidate_cells(best_cell(0),best_cell(1),wdt_field)
+    do l=0,3
+        i = new_cand_cells(l,0)
+        if (i >=0) then
+            j = new_cand_cells(l,1)
+            call propagate_dist(i,j,wdt_field,costs_x,costs_y,n_x,n_y,dist)
+            if (wdt_field(i,j) >= dist) then
+                wdt_field(i,j) = dist
+                call cand_heap%insert([i,j])
+            end if
+        end if
+    end do
+end do
+call cpu_time(time3)
+write(*,*)(time2-time1)
+write(*,*)(time3-time2)
+
+contains
+
+    logical function smaller(cell1, cell2)
+        integer, intent(in) :: cell1(:), cell2(:)
+        smaller = wdt_field(cell1(1), cell1(2)) < wdt_field(cell2(1), cell2(2))
+    end function
+end subroutine
 
 program test_wdt
     implicit none
@@ -198,100 +266,4 @@ program test_wdt
 	write(k) wdt_field
 	close(k)
 end program
-
-subroutine weighted_distance_transform(cost_field,wdt_field,n_x,n_y,obs_val)
-    ! Todo: Somehow make sure I don't have to input the n_x/n_y
-use wdt_module
-use mheap
-implicit none
-!   Compute the potential in a single cell with a first order upwind method
-!f2py intent(in) cost_field,obs_val,n_x,n_y
-!f2py depend(n_x,n_y) cost_field,wdt_field
-!f2py intent(out) wdt_field
-!
-integer (kind=4) :: nb_cell_x,nb_cell_y,n_x,n_y
-real (kind=8):: hor_potential,ver_potential,hor_cost,ver_cost,obs_val
-
-integer (kind=4) :: direction
-integer (kind=4), dimension(:,:), allocatable :: nb_values
-integer (kind=4), dimension(0:3,0:1) :: new_cand_cells
-integer (kind=4), dimension(0:1) :: best_cell
-type(THEAP) :: cand_heap
-
-integer (kind=4) :: i,j, min_i,min_j,k,l
-real (kind=8), dimension(0:n_x-1,0:n_y-1) :: cost_field,wdt_field
-real (kind=8), dimension(0:n_x,0:n_y-1) :: costs_x
-real (kind=8), dimension(0:n_x-1,0:n_y) :: costs_y
-integer (kind=4), dimension(0:n_x-1,0:n_y-1) :: cell_indicators
-integer (kind=4) :: cell_x,cell_y
-integer (kind=4) :: num_cand_cells,heap_capacity
-real (kind=8) :: dist, min_dist
-real time1,time2,time3
-
-nx = n_x
-ny = n_y
-obstacle_value = obs_val
-unknown_value = obs_val + 1
-heap_capacity = (n_x+n_y)*4 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
-call cpu_time(time1)
-! Cost for moving along horizontal lines
-! Todo: I don't think we ever access the outer boundary of the costs_x/y array
-costs_x = obstacle_value
-costs_x(1:n_x-1,:) = (cost_field(1:n_x-1,:) + cost_field(0:n_x-2,:))/2
-! Cost for moving along vertical lines
-costs_y = obstacle_value
-costs_y(:,1:n_y-1) = (cost_field(:,1:n_y-1) + cost_field(:,0:n_y-2))/2
-
-!Initialize locations (known(exit/obstacles)/unknown)
-wdt_field = unknown_value !TODO: Faster to do in loop? Check
-cell_indicators = UNKNOWN ! Same!
-call cand_heap%init(heap_capacity,2,smaller)
-do j=0,ny-1
-	do i=0,nx-1
-        if (cost_field(i,j)==0) then
-            ! No cost, so this is an exit
-            wdt_field(i,j) = 0
-            cell_indicators(i,j) = KNOWN
-            call cand_heap%insert([i,j])
-            ! Count the maximum number of candidate cells to allocate later
-            ! num_cand_cells = num_cand_cells + NUM_DIRS
-            ! call add_candidate_cells(i,j,cell_indicators,nx,ny)
-        elseif (cost_field(i,j)>=obstacle_value) then
-            ! 'infinite cost', so this is an obstacle
-            wdt_field(i,j) = obstacle_value
-            cell_indicators(i,j) = KNOWN
-        endif
-    enddo
-enddo
-call cpu_time(time2)
-
-! First round of level set (all cells neighbouring the exit)
-do while (.true.)
-    if (cand_heap%n==0) then
-        exit
-    end if
-    call cand_heap%pop(best_cell)
-
-    new_cand_cells = new_candidate_cells(best_cell(0),best_cell(1),wdt_field)
-    do l=0,3
-        i = new_cand_cells(l,0)
-        if (i >=0) then
-            j = new_cand_cells(l,1)
-            call propagate_dist(i,j,wdt_field,costs_x,costs_y,nx,ny,dist)
-            if (wdt_field(i,j) >= dist) then
-                wdt_field(i,j) = dist
-                call cand_heap%insert([i,j]) ! Todo: Is there a way to get in else?
-            end if
-        end if
-    end do
-end do
-call cpu_time(time3)
-write(*,*)(time2-time1)
-write(*,*)(time3-time2)
-contains
-    logical function smaller(cell1, cell2)
-        integer, intent(in) :: cell1(:), cell2(:)
-        smaller = wdt_field(cell1(1), cell1(2)) < wdt_field(cell2(1), cell2(2))
-    end function
-end subroutine
 
