@@ -19,25 +19,25 @@ module wdt_module
 
 contains
 
-!    function new_candidate_cells(cell_x,cell_y,wdt_field) result(cand_cells)
-!        implicit none
-!        ! Find new candidate cells
-!        integer (kind=4), intent(in) :: cell_x,cell_y
-!        real (kind=8), dimension(0:nx-1,0:ny-1), intent(in) :: wdt_field
-!        integer (kind=4), dimension(0:3,0:1) :: cand_cells !DON'T mark intent out
-!        integer (kind=4) :: direction,nb_x,nb_y
-!        cand_cells = -1
-!        do direction=0,3
-!            nb_x = sign(mod(direction+1,2),direction-1) + cell_x
-!            nb_y = sign(mod(direction,2),direction-2) + cell_y
-!            if (exists(nb_x,nb_y)==1)  then
-!                if (wdt_field(nb_x,nb_y) == unknown_value) then
-!                    cand_cells(direction,0) = nb_x
-!                    cand_cells(direction,1) = nb_y
-!                end if
-!            end if
-!        end do
-!    end function new_candidate_cells
+    function new_candidate_cells(cell_x,cell_y,wdt_field) result(cand_cells)
+        implicit none
+        ! Find new candidate cells
+        integer (kind=4), intent(in) :: cell_x,cell_y
+        real (kind=8), dimension(0:nx-1,0:ny-1), intent(in) :: wdt_field
+        integer (kind=4), dimension(0:3,0:1) :: cand_cells !DON'T mark intent out
+        integer (kind=4) :: direction,nb_x,nb_y
+        cand_cells = -1
+        do direction=0,3
+            nb_x = sign(mod(direction+1,2),direction-1) + cell_x
+            nb_y = sign(mod(direction,2),direction-2) + cell_y
+            if (exists(nb_x,nb_y)==1)  then
+                if (wdt_field(nb_x,nb_y) == unknown_value) then
+                    cand_cells(direction,0) = nb_x
+                    cand_cells(direction,1) = nb_y
+                end if
+            end if
+        end do
+    end function new_candidate_cells
     subroutine add_candidate_cells(cell_x,cell_y, cell_indicators,nx,ny)
         implicit none
         integer (kind=4) :: cell_x,cell_y, nx,ny
@@ -176,7 +176,7 @@ program test_wdt
     implicit none
     integer (kind=4), parameter :: n_x=400
     integer (kind=4), parameter :: n_y=500
-    integer (kind=4) :: i,j
+    integer (kind=4) :: k
     real (kind=8), dimension(0:n_x-1,0:n_y-1) :: cost_field,wdt_field
     real (kind=8), parameter :: obstacle_value = 2000
 
@@ -191,12 +191,18 @@ program test_wdt
     cost_field(0:3,2) = 0
     cost_field(3,1:3)= obstacle_value
     cost_field(50,:) = obstacle_value
+    cost_field(50,250) = 0.01
     call weighted_distance_transform(cost_field,wdt_field,n_x,n_y,obstacle_value)
+	k = 3
+	open(k, file="output.dat", access="stream")
+	write(k) wdt_field
+	close(k)
 end program
 
 subroutine weighted_distance_transform(cost_field,wdt_field,n_x,n_y,obs_val)
     ! Todo: Somehow make sure I don't have to input the n_x/n_y
 use wdt_module
+use mheap
 implicit none
 !   Compute the potential in a single cell with a first order upwind method
 !f2py intent(in) cost_field,obs_val,n_x,n_y
@@ -208,14 +214,17 @@ real (kind=8):: hor_potential,ver_potential,hor_cost,ver_cost,obs_val
 
 integer (kind=4) :: direction
 integer (kind=4), dimension(:,:), allocatable :: nb_values
+integer (kind=4), dimension(0:3,0:1) :: new_cand_cells
+integer (kind=4), dimension(0:1) :: best_cell
+type(THEAP) :: cand_heap
 
-integer (kind=4) :: i,j, min_i,min_j
+integer (kind=4) :: i,j, min_i,min_j,k,l
 real (kind=8), dimension(0:n_x-1,0:n_y-1) :: cost_field,wdt_field
 real (kind=8), dimension(0:n_x,0:n_y-1) :: costs_x
 real (kind=8), dimension(0:n_x-1,0:n_y) :: costs_y
 integer (kind=4), dimension(0:n_x-1,0:n_y-1) :: cell_indicators
 integer (kind=4) :: cell_x,cell_y
-integer (kind=4) :: num_cand_cells
+integer (kind=4) :: num_cand_cells,heap_capacity
 real (kind=8) :: dist, min_dist
 real time1,time2,time3
 
@@ -223,6 +232,7 @@ nx = n_x
 ny = n_y
 obstacle_value = obs_val
 unknown_value = obs_val + 1
+heap_capacity = (n_x+n_y)*4 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
 call cpu_time(time1)
 ! Cost for moving along horizontal lines
 ! Todo: I don't think we ever access the outer boundary of the costs_x/y array
@@ -235,15 +245,17 @@ costs_y(:,1:n_y-1) = (cost_field(:,1:n_y-1) + cost_field(:,0:n_y-2))/2
 !Initialize locations (known(exit/obstacles)/unknown)
 wdt_field = unknown_value !TODO: Faster to do in loop? Check
 cell_indicators = UNKNOWN ! Same!
-do i=0,nx-1
-    do j=0,ny-1
+call cand_heap%init(heap_capacity,2,smaller)
+do j=0,ny-1
+	do i=0,nx-1
         if (cost_field(i,j)==0) then
             ! No cost, so this is an exit
             wdt_field(i,j) = 0
             cell_indicators(i,j) = KNOWN
-            ! ! Count the maximum number of candidate cells to allocate later
+            call cand_heap%insert([i,j])
+            ! Count the maximum number of candidate cells to allocate later
             ! num_cand_cells = num_cand_cells + NUM_DIRS
-            call add_candidate_cells(i,j,cell_indicators,nx,ny)
+            ! call add_candidate_cells(i,j,cell_indicators,nx,ny)
         elseif (cost_field(i,j)>=obstacle_value) then
             ! 'infinite cost', so this is an obstacle
             wdt_field(i,j) = obstacle_value
@@ -251,52 +263,35 @@ do i=0,nx-1
         endif
     enddo
 enddo
-!    do i=0,n_y-1
-!        write(*,*) ( cell_indicators(j,n_x-i-1), j=0,n_x-1 )
-!    enddo
-! allocate(nb_values(0:num_cand_cells-1,0:1))
-
-! nb_values = new_candidate_cells(2,1,wdt_field)
-! print*,nb_values
-! deallocate(nb_values)
 call cpu_time(time2)
+
+! First round of level set (all cells neighbouring the exit)
 do while (.true.)
-    ! Find the minimal distance to add to the field
-    min_dist = obstacle_value
-    min_i = -1
-    min_j = -1
-    do j=1,ny-1
-        do i=0,nx-1
-            if (cell_indicators(i,j)>=CANDIDATE) then
-                ! Compute distances for all new candidate cells
-                if (cell_indicators(i,j) == NEW_CANDIDATE) then
-                    call propagate_dist(i,j,wdt_field,costs_x,costs_y,nx,ny,dist)
-                    if (dist < wdt_field(i,j)) then
-                        ! If the distance is lower, overwrite
-                        wdt_field(i,j) = dist
-                    end if
-                    ! All new candidates now become regular candidate cells
-                    cell_indicators(i,j) = CANDIDATE
-                end if
-                if (min_dist > wdt_field(i,j)) then
-                    ! Minimize the distance over all candidate cells
-                    min_dist = wdt_field(i,j)
-                    min_i = i
-                    min_j = j
-                end if
-            end if
-        end do
-    end do
-    if (min_dist == obstacle_value) then
+    if (cand_heap%n==0) then
         exit
-    else
-    ! Mark the cell as known
-        cell_indicators(min_i,min_j) = KNOWN
-        call add_candidate_cells(min_i,min_j,cell_indicators,nx,ny)
     end if
+    call cand_heap%pop(best_cell)
+
+    new_cand_cells = new_candidate_cells(best_cell(0),best_cell(1),wdt_field)
+    do l=0,3
+        i = new_cand_cells(l,0)
+        if (i >=0) then
+            j = new_cand_cells(l,1)
+            call propagate_dist(i,j,wdt_field,costs_x,costs_y,nx,ny,dist)
+            if (wdt_field(i,j) >= dist) then
+                wdt_field(i,j) = dist
+                call cand_heap%insert([i,j]) ! Todo: Is there a way to get in else?
+            end if
+        end if
+    end do
 end do
 call cpu_time(time3)
 write(*,*)(time2-time1)
 write(*,*)(time3-time2)
+contains
+    logical function smaller(cell1, cell2)
+        integer, intent(in) :: cell1(:), cell2(:)
+        smaller = wdt_field(cell1(1), cell1(2)) < wdt_field(cell2(1), cell2(2))
+    end function
 end subroutine
 

@@ -31,8 +31,8 @@ PUBLIC :: HEAPFUN, THEAP
 
 ABSTRACT INTERFACE
 FUNCTION HEAPFUN( NODE1, NODE2 ) RESULT(RES)
-   DOUBLE PRECISION, INTENT(IN) :: NODE1(:)
-   DOUBLE PRECISION, INTENT(IN) :: NODE2(:)
+   INTEGER, INTENT(IN) :: NODE1(:)
+   INTEGER, INTENT(IN) :: NODE2(:)
    LOGICAL :: RES
 END FUNCTION HEAPFUN
 END INTERFACE
@@ -41,8 +41,8 @@ TYPE :: THEAP
    INTEGER                             :: NMAX      ! MAX SIZE
    INTEGER                             :: N         ! CURRENT HEAP SIZE
    INTEGER                             :: M         ! CURRENT TREE SIZE
-   INTEGER                             :: NLEN      ! NODE SIZE IN DOUBLE PRECISION UNITS
-   DOUBLE PRECISION, ALLOCATABLE       :: DATA(:,:) ! NODE DATA
+   INTEGER                             :: NLEN      ! NODE SIZE IN INTEGER UNITS ! TODO: Make parameter
+   INTEGER, ALLOCATABLE       :: DATA(:,:) ! NODE DATA
    INTEGER, ALLOCATABLE                :: INDX(:)   ! NODES INDEX
    PROCEDURE(HEAPFUN), NOPASS, POINTER :: FUN       ! HEAP FUNCTION TO FIND ROOT NODE
    CONTAINS
@@ -102,7 +102,7 @@ CONTAINS
       !        node - a double precision array, nlen long, which
       !               contains the node's information to be inserted.
       CLASS(THEAP) :: HEAP
-      DOUBLE PRECISION, INTENT(IN) :: NODE(HEAP%NLEN)
+      INTEGER, INTENT(IN) :: NODE(HEAP%NLEN)
 
       INTEGER :: I, K1, K2, IL, IR
 
@@ -133,7 +133,7 @@ CONTAINS
       !   output 
       !        node - the deleted node 
       CLASS(THEAP) :: HEAP
-      DOUBLE PRECISION, OPTIONAL :: NODE( HEAP%NLEN )
+      INTEGER, OPTIONAL :: NODE( HEAP%NLEN )
       INTEGER :: I
 
       IF( HEAP%N .EQ. 0 ) RETURN
@@ -154,7 +154,7 @@ CONTAINS
       ! Access the k-th node of the heap
       CLASS(THEAP) :: HEAP
       INTEGER, INTENT(IN) :: K
-      DOUBLE PRECISION, INTENT(OUT) :: NODE(HEAP%NLEN)
+      INTEGER, INTENT(OUT) :: NODE(HEAP%NLEN)
       IF (K .LT. 1 .OR. K .GT. HEAP%N .OR. HEAP%N .GT. HEAP%NMAX) RETURN
       NODE(:) = HEAP%DATA(:,HEAP%INDX(K))
    END SUBROUTINE HEAP_PEEK
