@@ -1,4 +1,4 @@
-! Copyright (c) 2014, Daniel Pena 
+! Copyright (c) 2017, Omar Richardson
 ! All rights reserved.
 
 ! Redistribution and use in source and binary forms, with or without
@@ -21,91 +21,74 @@
 ! (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ! SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-PROGRAM TEST_MHEAP
+program test_mheap
+   use mheap
+   implicit none
+   integer (kind=4), dimension(0:1) :: node
+   integer (kind=4), parameter :: nx = 4
+   integer (kind=4), parameter :: ny = 5
+   real (kind=8), dimension(0:nx-1,0:ny-1) :: field
+   integer (kind=4) :: cap, heap_length, tree_length, i,j,k
+   integer (kind=4), allocatable, dimension(:,:) :: heap
+   integer (kind=4), allocatable, dimension(:) :: indx
 
-   USE MHEAP
+   ! Some field according to which the arrays should be indexed.
+   do i=0,nx-1
+       do j=0,ny-1
+           field(i,j) = 1./(i+j+1)
+       end do
+   end do
 
-   DOUBLE PRECISION :: NODE(2)
-   TYPE(THEAP) :: H
-   INTEGER     :: K
-
-   ! Init a heap with comparison function GREATER1, that 
+   cap = 10
+   ! init a heap with the array comparison value, that
    ! compares the nodes' first component to order the heap
-   CALL H%INIT( 10, 2, GREATER1 )
+   call heap_init(heap,indx,cap)
 
    ! insert some data
-   CALL H%INSERT( [ 1.0D0, 2.0D0] )
-   CALL H%INSERT( [-1.0D0, 8.0D0] )
-   CALL H%INSERT( [ 5.0D0, 1.0D0] )
-   CALL H%INSERT( [ 2.0D0,-1.0D0] )
-   CALL H%INSERT( [-6.0D0, 5.0D0] )
-   CALL H%INSERT( [ 3.0D0, 2.0D0] )
+   call heap_insert(heap,indx,cap,heap_length,tree_length, [1,2],field,nx,ny )
+   call heap_insert(heap,indx,cap,heap_length,tree_length, [2,0],field,nx,ny )
+   call heap_insert(heap,indx,cap,heap_length,tree_length, [3,1],field,nx,ny )
+   call heap_insert(heap,indx,cap,heap_length,tree_length, [1,3],field,nx,ny )
+   call heap_insert(heap,indx,cap,heap_length,tree_length, [0,4],field,nx,ny )
+   call heap_insert(heap,indx,cap,heap_length,tree_length, [3,2],field,nx,ny )
 
-   ! Data is kept unordered (except for the root node)
-   WRITE(*,*)
-   WRITE(*,*) 'Unordered traversal, the first element is always the root node'
-   DO K = 1, H%N
-      CALL H%PEEK( K, NODE ) 
-      WRITE(*,*) NODE
-   ENDDO
+   ! data is kept unordered (except for the root node)
+   write(*,*)
+   write(*,*) 'unordered traversal, the first element is always the root node'
+   do k = 0, heap_length-1
+      call heap_peek( heap, indx,cap,heap_length,k,node) 
+      write(*,*) node
+   enddo
 
-   ! When the root node is popped, a new root node is set.
-   ! To traverse it in order just pop all the root elements.
-   WRITE(*,*)
-   WRITE(*,*) 'Ordered traversal'
-   DO K = 1, H%N
-      CALL H%POP(NODE)
-      WRITE(*,*) NODE
-   ENDDO
-   WRITE(*,*) 'Now heap is empty:', H%N
+   ! when the root node is popped, a new root node is set.
+   ! to traverse it in order just pop all the root elements.
+   write(*,*)
+   write(*,*) 'ordered traversal'
+   do k = 0, heap_length-1
+      call heap_pop(heap, indx, cap, heap_length, field, nx, ny, node)
+      write(*,*) node
+   enddo
+   write(*,*) 'now heap is empty:', heap_length
 
-   ! Data is not lost from the tree when using pop,
+   ! data is not lost from the tree when using pop,
    ! we can reheap the whole tree and start over
-   WRITE(*,*) 'Tree data is kept after popping, so as long'
+   write(*,*) 'tree data is kept after popping, so as long'
    write(*,*) 'as no new insertions are made, the same data'
    write(*,*) 'can be reheaped using the same or another function.'
-   WRITE(*,*)
-   WRITE(*,*) 'Reheap using same function'
-   CALL H%REHEAP()
-   DO K = 1, H%N
-      CALL H%POP(NODE)
-      WRITE(*,*) NODE
-   ENDDO
+   write(*,*)
+   write(*,*) 'reheap using same function'
+   call heap_reheap(heap,indx, cap, heap_length, tree_length, field, nx, ny)
+   do k = 0, heap_length-1
+      call heap_pop(heap, indx, cap, heap_length, field, nx, ny, node)
+      write(*,*) node
+   enddo
+   write(*,*) 'insert 2 new elements'
+   call heap_insert(heap,indx,cap,heap_length,tree_length, [3,4],field,nx,ny )
+   call heap_insert(heap,indx,cap,heap_length,tree_length, [1,1],field,nx,ny )
+   write(*,*) 'pop all'
+   do k = 0, heap_length-1
+      call heap_pop(heap, indx, cap, heap_length, field, nx, ny, node)
+      write(*,*) node
+   enddo
 
-   WRITE(*,*)
-   WRITE(*,*) 'Reheap using other function'
-   CALL H%REHEAP( GREATER2 )
-   DO K = 1, H%N
-      CALL H%POP(NODE)
-      WRITE(*,*) NODE
-   ENDDO
-
-   WRITE(*,*)
-   WRITE(*,*) 'Pop half the elements'
-   CALL H%REHEAP( GREATER2 )
-   DO K = 1, H%N / 2
-      CALL H%POP(NODE)
-      WRITE(*,*) NODE
-   ENDDO
-   WRITE(*,*) 'Insert 2 new elements'
-   CALL H%INSERT( [ 2.0D0, 10.0D0] )
-   CALL H%INSERT( [ 3.0D0,-10.0D0] )
-   WRITE(*,*) 'Pop all'
-   DO K = 1, H%N 
-      CALL H%POP(NODE)
-      WRITE(*,*) NODE
-   ENDDO
-
-CONTAINS
-
-   LOGICAL FUNCTION GREATER1( NODE1, NODE2 )
-      DOUBLE  PRECISION, INTENT(IN) :: NODE1(:), NODE2(:)
-      GREATER1 = NODE1(1) < NODE2(1)
-   END FUNCTION GREATER1
-
-   LOGICAL FUNCTION GREATER2( NODE1, NODE2 )
-      DOUBLE PRECISION, INTENT(IN) :: NODE1(:), NODE2(:)
-      GREATER2 = NODE1(2) < NODE2(2)
-   END FUNCTION GREATER2
-
-END PROGRAM TEST_MHEAP
+end program test_mheap

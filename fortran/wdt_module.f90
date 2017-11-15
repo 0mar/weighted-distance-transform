@@ -161,15 +161,18 @@ integer (kind=4) :: direction
 integer (kind=4), dimension(:,:), allocatable :: nb_values
 integer (kind=4), dimension(0:3,0:1) :: new_cand_cells
 integer (kind=4), dimension(0:1) :: best_cell
-type(THEAP) :: cand_heap
 
-integer (kind=4) :: i,j, min_i,min_j,k,l
+integer (kind=4), allocatable, dimension(:,:) :: cand_heap
+integer (kind=4), allocatable, dimension(:) :: indx
+integer (kind=4) :: heap_capacity, heap_length, tree_length
+
+integer (kind=4) :: i,j,k,l
 real (kind=8), dimension(0:n_x-1,0:n_y-1) :: cost_field,wdt_field
 real (kind=8), dimension(0:n_x,0:n_y-1) :: costs_x
 real (kind=8), dimension(0:n_x-1,0:n_y) :: costs_y
 integer (kind=4), dimension(0:n_x-1,0:n_y-1) :: cell_indicators
 integer (kind=4) :: cell_x,cell_y
-integer (kind=4) :: num_cand_cells,heap_capacity
+integer (kind=4) :: num_cand_cells
 real (kind=8) :: dist, min_dist
 real time1,time2,time3
 
@@ -177,7 +180,6 @@ nx = n_x
 ny = n_y
 obstacle_value = obs_val
 unknown_value = obs_val + 1
-heap_capacity = (n_x+n_y)*10 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
 call cpu_time(time1)
 ! Cost for moving along horizontal lines
 costs_x = obstacle_value
@@ -189,7 +191,11 @@ costs_y(:,1:n_y-1) = (cost_field(:,1:n_y-1) + cost_field(:,0:n_y-2))/2
 !Initialize locations (known(exit/obstacles)/unknown)
 wdt_field = unknown_value 
 cell_indicators = UNKNOWN 
-call cand_heap%init(heap_capacity,2,smaller)
+
+heap_length = 0
+tree_length = 0
+heap_capacity = (n_x+n_y)*10 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
+call heap_init(cand_heap,indx,heap_capacity)
 
 do j=0,n_y-1
 	do i=0,n_x-1
@@ -197,7 +203,7 @@ do j=0,n_y-1
             ! No cost, so this is an exit
             wdt_field(i,j) = 0
             cell_indicators(i,j) = KNOWN
-            call cand_heap%insert([i,j])
+            call heap_insert(cand_heap,indx,heap_capacity,heap_length,tree_length,[i,j],wdt_field,n_x,n_y)
         elseif (cost_field(i,j)>=obstacle_value) then
             ! 'infinite cost', so this is an obstacle
             wdt_field(i,j) = obstacle_value
@@ -209,10 +215,10 @@ call cpu_time(time2)
 
 ! Iteration of level set
 do while (.true.)
-    if (cand_heap%n==0) then
+    if (heap_length==0) then
         exit
     end if
-    call cand_heap%pop(best_cell)
+    call heap_pop(cand_heap, indx, heap_capacity, heap_length, wdt_field, n_x, n_y, best_cell)
 
     call new_candidate_cells(best_cell(0),best_cell(1),wdt_field,n_x,n_y,new_cand_cells)
     do l=0,3
@@ -222,7 +228,7 @@ do while (.true.)
             call propagate_dist(i,j,wdt_field,costs_x,costs_y,n_x,n_y,dist)
             if (wdt_field(i,j) >= dist) then
                 wdt_field(i,j) = dist
-                call cand_heap%insert([i,j])
+                call heap_insert(cand_heap,indx,heap_capacity,heap_length,tree_length,[i,j],wdt_field,n_x,n_y)
             end if
         end if
     end do
