@@ -51,6 +51,7 @@ class WDT:
         cost_field[obstacles] = np.inf
         cost_field[exits] = 0
         cost_field[space] = 1. / grey_scales[space]
+        print("Got cost field")
         return cost_field
 
     def _exists(self, index):
@@ -188,7 +189,9 @@ class WDT:
         plt.colorbar()
         plt.show()
 
-time1 = time.time()
-wdt = WDT('images/ex2.png')
-print(time.time() - time1)
-wdt.plot()
+
+# if __name__ == "__main__":
+#     time1 = time.time()
+#     wdt = WDT('images/ex2.png')
+#     print(time.time() - time1)
+#     wdt.plot()
