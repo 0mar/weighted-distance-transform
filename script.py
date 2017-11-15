@@ -37,21 +37,23 @@ class WDT:
         """
 
         # Exits are present in all red enough places ("R >> BG")
-        exits = np.where(data[:, :, 0] - (data[:, :, 1] + data[:, :, 2]) / 2 > 160)
+        data = data/255.
+        exits = np.where(data[:, :, 0] - (data[:, :, 1] + data[:, :, 2]) / 2 > 2./3)
         # Obstacles are in black (so at least G and B must be zero)
-        obstacles = np.where(data[:, :, 1] + data[:, :, 2] == 0)
+        obstacles = np.where(np.abs(data[:, :, 1] + data[:, :, 2]) < 1./256)
         # Convert image to greyscale
         grey_scales = np.dot(data[..., :3], [0.299, 0.587, 0.114])
         # Boolean index array for places without exits and obstacles
         space = np.ones(grey_scales.shape, dtype=np.bool)
-        space[exits] = False
         space[obstacles] = False
+        plt.imshow(space)
+        plt.show()
+        space[exits] = False
         # Cost field: Inversely proportional to greyscale values
         cost_field = np.empty(data[:, :, 0].shape)
         cost_field[obstacles] = np.inf
         cost_field[exits] = 0
-        cost_field[space] = 1. / grey_scales[space]
-        print("Got cost field")
+        cost_field[space] = 1. / (255 * grey_scales[space])
         return cost_field
 
     def _exists(self, index):

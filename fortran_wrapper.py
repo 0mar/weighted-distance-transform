@@ -6,7 +6,7 @@ import time
 from script import WDT
 import matplotlib.pyplot as plt
 
-filename = 'images/ex1.png'
+filename = 'images/ex2.png'
 data = imread(filename, mode='RGB')
 cost_field = WDT.convert_image_to_cost_field(data)
 time1 = time.time()
