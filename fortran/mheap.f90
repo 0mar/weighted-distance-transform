@@ -43,11 +43,9 @@ contains
       ! nlen  -  size of each node 
       ! hpfun -  the heap function (provides comparison between two nodes' data)
       integer (kind=4), intent(in) :: cap
-      integer (kind=4), allocatable, dimension(:,:) :: heap
-      integer (kind=4), allocatable, dimension(:) :: indx
+      integer (kind=4), dimension(0:1,0:cap-1) :: heap
+      integer (kind=4), dimension(0:cap-1) :: indx
       integer (kind=4) :: i 
-      allocate(heap(0:1,0:cap-1))
-      allocate(indx(0:cap-1))
       do i = 0, cap -1
          indx(i)=i
       enddo

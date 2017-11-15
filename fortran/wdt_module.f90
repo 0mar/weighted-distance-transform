@@ -158,7 +158,6 @@ integer (kind=4) :: nb_cell_x,nb_cell_y,n_x,n_y
 real (kind=8):: hor_potential,ver_potential,hor_cost,ver_cost,obs_val
 
 integer (kind=4) :: direction
-integer (kind=4), dimension(:,:), allocatable :: nb_values
 integer (kind=4), dimension(0:3,0:1) :: new_cand_cells
 integer (kind=4), dimension(0:1) :: best_cell
 
@@ -195,6 +194,8 @@ cell_indicators = UNKNOWN
 heap_length = 0
 tree_length = 0
 heap_capacity = (n_x+n_y)*10 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
+allocate(cand_heap(0:1,0:heap_capacity-1))
+allocate(indx(0:heap_capacity-1))
 call heap_init(cand_heap,indx,heap_capacity)
 
 do j=0,n_y-1
@@ -233,16 +234,12 @@ do while (.true.)
         end if
     end do
 end do
+deallocate(cand_heap)
+deallocate(indx)
 call cpu_time(time3)
 write(*,*)(time2-time1)
 write(*,*)(time3-time2)
 
-contains
-
-    logical function smaller(cell1, cell2)
-        integer, intent(in) :: cell1(:), cell2(:)
-        smaller = wdt_field(cell1(1), cell1(2)) < wdt_field(cell2(1), cell2(2))
-    end function
 end subroutine
 
 program test_wdt
@@ -259,12 +256,13 @@ program test_wdt
     !- * - -
     !- - - -
 
-    cost_field = 0.01
-    cost_field(1,1) = 0
-    cost_field(0:3,2) = 0
-    cost_field(3,1:3)= obstacle_value
-    cost_field(50,:) = obstacle_value
-    cost_field(50,250) = 0.01
+!    cost_field = 0.01
+!    cost_field(1,1) = 0
+!    cost_field(0:3,2) = 0
+!    cost_field(3,1:3)= obstacle_value
+!    cost_field(50,:) = obstacle_value
+!    cost_field(50,250) = 0.01
+    cost
     call weighted_distance_transform(cost_field,wdt_field,n_x,n_y,obstacle_value)
 	k = 3
 	open(k, file="output.dat", access="stream")
