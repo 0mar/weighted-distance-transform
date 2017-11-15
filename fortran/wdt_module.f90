@@ -1,9 +1,10 @@
 module wdt_module
     implicit none
     public :: exists, propagate_dist
-    public :: nx,ny,obstacle_value,unknown_value
+    public :: nx,ny
     public :: LEFT, DOWN, RIGHT, UP, NUM_DIRS, KNOWN, UNKNOWN, CANDIDATE, NEW_CANDIDATE
-    integer (kind=4) :: nx,ny,obstacle_value,unknown_value
+    integer (kind=4) :: nx,ny
+    real (kind=8) :: obstacle_value, unknown_value
 
     integer (kind=4), parameter :: LEFT = 0
     integer (kind=4), parameter :: DOWN = 1
@@ -147,13 +148,11 @@ end module wdt_module
 subroutine weighted_distance_transform(cost_field,wdt_field,n_x,n_y,obs_val)
     ! Todo: Somehow make sure I don't have to input the n_x/n_y in Python
 use wdt_module
-use mheap
 implicit none
 !   Compute the potential in a single cell with a first order upwind method
 !f2py intent(in) cost_field,obs_val,n_x,n_y
 !f2py depend(n_x,n_y) cost_field,wdt_field
 !f2py intent(out) wdt_field
-!f2py integer, intent(aux)nx,ny
 integer (kind=4) :: nb_cell_x,nb_cell_y,n_x,n_y
 real (kind=8):: hor_potential,ver_potential,hor_cost,ver_cost,obs_val
 
@@ -199,7 +198,7 @@ allocate(indx(0:heap_capacity-1))
 call heap_init(cand_heap,indx,heap_capacity)
 
 do j=0,n_y-1
-	do i=0,n_x-1
+    do i=0,n_x-1
         if (cost_field(i,j)==0) then
             ! No cost, so this is an exit
             wdt_field(i,j) = 0
@@ -262,11 +261,10 @@ program test_wdt
 !    cost_field(3,1:3)= obstacle_value
 !    cost_field(50,:) = obstacle_value
 !    cost_field(50,250) = 0.01
-    cost
     call weighted_distance_transform(cost_field,wdt_field,n_x,n_y,obstacle_value)
-	k = 3
-	open(k, file="output.dat", access="stream")
-	write(k) wdt_field
-	close(k)
+    k = 3
+    open(k, file="output.dat", access="stream")
+    write(k) wdt_field
+    close(k)
 end program
 

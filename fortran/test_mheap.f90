@@ -21,16 +21,18 @@
 ! (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ! SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-program test_mheap
-   use mheap
+subroutine test_mheap(cap)
+    !f2py intent(in) cap
+    !f2py intent(out) heap
+    !f2py depend(cap) heap
    implicit none
    integer (kind=4), dimension(0:1) :: node
    integer (kind=4), parameter :: nx = 4
    integer (kind=4), parameter :: ny = 5
    real (kind=8), dimension(0:nx-1,0:ny-1) :: field
    integer (kind=4) :: cap, heap_length, tree_length, i,j,k
-   integer (kind=4), allocatable, dimension(:,:) :: heap
-   integer (kind=4), allocatable, dimension(:) :: indx
+   integer (kind=4), dimension(0:1,0:cap-1) :: heap
+   integer (kind=4), dimension(0:cap-1) :: indx
 
    ! Some field according to which the arrays should be indexed.
    do i=0,nx-1
@@ -39,9 +41,9 @@ program test_mheap
        end do
    end do
 
-   cap = 10
    ! init a heap with the array comparison value, that
    ! compares the nodes' first component to order the heap
+
    call heap_init(heap,indx,cap)
 
    ! insert some data
@@ -91,4 +93,4 @@ program test_mheap
       write(*,*) node
    enddo
 
-end program test_mheap
+end subroutine test_mheap
