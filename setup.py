@@ -2,10 +2,10 @@ from distutils.core import setup
 from numpy.distutils.core import Extension
 from numpy.distutils.core import setup as npsetup
 
-prop_dist = Extension(name='wdt_fortran', sources=['propagate_distance.f90'])
+wdt = Extension(name='_wdt', sources=['fortran/mheap.f90', 'fortran/wdt_module.f90'])
 
 if __name__ == "__main__":
     npsetup(name='FORTRAN modules',
-            description="FORTRAN module for the weighted distance transform script",
+            description="FORTRAN module for the weighted distance transform",
             author="Omar Richardson",
-            ext_modules=[prop_dist])
+            ext_modules=[wdt])
