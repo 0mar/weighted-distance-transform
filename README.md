@@ -1,15 +1,15 @@
 # Weighted distance transform
-A Python implementation for computing a weighted distance transform of an image.
+Python and Fortran implementation for computing a weighted distance transform of an image.
 
 A [distance transform](https://en.wikipedia.org/wiki/Distance_transform) is a map of an image that assign to each pixel its distance to the nearest boundary.
-A weighted distance transform extends this by allowing for ... weighted distances. Useful for image analysis or computing potential functions in path finding.
+A weighted distance transform extends this by allowing for _weighted distances_, replacing the uniform Euclidian distance measure with a non-uniform marginal cost function. Useful for image analysis or computing potential functions in path finding.
 
-This script implements a fast marching algorithm in Python with some acceleration in Fortran (if a Fortran compiler is present).
+This script implements a fast marching algorithm in Fortran, compiled to a Python library upon install (if Numpy and a fortran compiler are present). Alternatively, a Python implementation of the same algorithm is provided as fallback.
 
 ### Prerequisites
 
  * Python 3 (but no real obstacles for Python 2)
- * Numpy/Scipy and the python imaging library (PIL)
+ * Numpy/Scipy and the Python Imaging library (PIL)
  * Matplotlib for plotting images (not required)
  * Fortran compiler, makes script significantly faster (recommended, not required)
 
@@ -38,15 +38,19 @@ python3 setup.py install
 
 ### Usage:
 
-The original use case of this script is creating motion planners for 2D maps (in [crowd dynamics](https://symbols.hotell.kau.se/2016/11/30/mercurial/)). We identify goals with _red_, obstacles in _black_, and accessible space in _white_. 
-You can use any color (except full red) to indicate an area that is less easily accessible (and preferably should be avoided). The darker the colour (mapped to a greyscale), the more difficult it is to move through. 
+The original use case of this script is creating motion planners for 2D maps (in [crowd dynamics](https://symbols.hotell.kau.se/2016/11/30/mercurial/)). We identify goals with _red_, obstacles in _black_, and accessible space in _white_. The corresponding color mapping is included.
+You can use any color (except full red) to indicate an area that is less easily accessible (and preferably should be avoided). The darker the colour (mapped to a greyscale), the more difficult it is to move through.
+
+Since this mapping is pretty arbitrary, you can provide your own in the python file `wdt.py`.
 
 Once you created an image, you can provide it to the script as shown below. 
-Otherwise, run the script with some example figures (like `images/ex1.png`)
+Otherwise, run the script with some example figures (like `images/ex1.png`).
 
 ```python
-wdt = WDT('images/ex1.png')
-wdt.plot()
+import wdt
+cost_field = wdt.load('images/ex1.png')
+weighted_distance_transform = wdt.compute(cost_field)
+wdt.plot(weighted_distane_transform)
 ```
 
 ## Authors
@@ -63,3 +67,4 @@ Algorithms inspired by
 * [Tsitsiklis](http://www.mit.edu/~jnt/dijkstra.html)
 * [Treuille et al.](http://grail.cs.washington.edu/projects/crowd-flows/78-treuille.pdf)
 
+Heap implementation based on Daniel Pena's [mheap](https://github.com/trifling/mheap)
