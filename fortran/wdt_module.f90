@@ -153,10 +153,9 @@ implicit none
 !f2py intent(in) cost_field,obs_val,n_x,n_y
 !f2py depend(n_x,n_y) cost_field,wdt_field
 !f2py intent(out) wdt_field
-integer (kind=4) :: nb_cell_x,nb_cell_y,n_x,n_y
-real (kind=8):: hor_potential,ver_potential,hor_cost,ver_cost,obs_val
+integer (kind=4) :: n_x,n_y
+real (kind=8):: obs_val
 
-integer (kind=4) :: direction
 integer (kind=4), dimension(0:3,0:1) :: new_cand_cells
 integer (kind=4), dimension(0:1) :: best_cell
 
@@ -164,21 +163,17 @@ integer (kind=4), allocatable, dimension(:,:) :: cand_heap
 integer (kind=4), allocatable, dimension(:) :: indx
 integer (kind=4) :: heap_capacity, heap_length, tree_length
 
-integer (kind=4) :: i,j,k,l
+integer (kind=4) :: i,j,l
 real (kind=8), dimension(0:n_x-1,0:n_y-1) :: cost_field,wdt_field
 real (kind=8), dimension(0:n_x,0:n_y-1) :: costs_x
 real (kind=8), dimension(0:n_x-1,0:n_y) :: costs_y
 integer (kind=4), dimension(0:n_x-1,0:n_y-1) :: cell_indicators
-integer (kind=4) :: cell_x,cell_y
-integer (kind=4) :: num_cand_cells
-real (kind=8) :: dist, min_dist
-real time1,time2,time3
+real (kind=8) :: dist
 
 nx = n_x
 ny = n_y
 obstacle_value = obs_val
 unknown_value = obs_val + 1
-call cpu_time(time1)
 ! Cost for moving along horizontal lines
 costs_x = obstacle_value
 costs_x(1:n_x-1,:) = (cost_field(1:n_x-1,:) + cost_field(0:n_x-2,:))/2
@@ -195,7 +190,7 @@ tree_length = 0
 heap_capacity = (n_x+n_y)*10 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
 allocate(cand_heap(0:1,0:heap_capacity-1))
 allocate(indx(0:heap_capacity-1))
-call heap_init(cand_heap,indx,heap_capacity)
+call heap_init(indx,heap_capacity)
 
 do j=0,n_y-1
     do i=0,n_x-1
@@ -211,7 +206,6 @@ do j=0,n_y-1
         endif
     enddo
 enddo
-call cpu_time(time2)
 
 ! Iteration of level set
 do while (.true.)
@@ -235,9 +229,6 @@ do while (.true.)
 end do
 deallocate(cand_heap)
 deallocate(indx)
-call cpu_time(time3)
-write(*,*)(time2-time1)
-write(*,*)(time3-time2)
 
 end subroutine
 

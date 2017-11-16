@@ -33,13 +33,12 @@ subroutine compare(node1, node2, field, nx, ny, smaller)
     smaller = field(node1(0),node1(1)) < field(node2(0),node2(1))
 end subroutine
 
-subroutine heap_init(heap,indx,cap)
+subroutine heap_init(indx,cap)
   ! initializes the heap 
   ! nmax  -  max size of the heap
   ! nlen  -  size of each node 
   ! hpfun -  the heap function (provides comparison between two nodes' data)
   integer (kind=4), intent(in) :: cap
-  integer (kind=4), dimension(0:1,0:cap-1) :: heap
   integer (kind=4), dimension(0:cap-1) :: indx
   integer (kind=4) :: i 
   do i = 0, cap -1
@@ -61,7 +60,7 @@ subroutine heap_insert(heap,indx,cap,heap_length,tree_length,node,field,nx,ny)
   integer (kind=4), intent(in) :: nx, ny
   real (kind=8), intent(in), dimension(0:nx-1,ny-1) :: field
 
-  integer (kind=4) :: i, k1, k2, il, ir
+  integer (kind=4) :: k1, k2, il, ir
   logical :: smaller
   if (cap == heap_length) return
   
@@ -98,7 +97,6 @@ subroutine heap_pop(heap, indx, cap, heap_length, field, nx, ny, node)
   integer (kind=4), intent(out), dimension(0:1) :: node
   integer (kind=4), intent(in) :: nx, ny
   real (kind=8), intent(in), dimension(0:nx-1,ny-1) :: field
-  integer :: i
 
   if( heap_length == 0 ) then
       write(*,*) "Error: Nothing to pop"
@@ -137,7 +135,7 @@ subroutine heap_grow(heap,indx, cap, heap_length, field, nx, ny, ktemp)
   integer (kind=4), intent(in), dimension(0:cap-1) :: indx
   integer (kind=4), intent(in) :: nx, ny
   real (kind=8), intent(in), dimension(0:nx-1,ny-1) :: field
-  integer (kind=4) :: i, k, itemp, itp1, il, ir, kt
+  integer (kind=4) :: i, k, il, ir
   integer (kind=4) :: ktemp
   logical :: smaller
 

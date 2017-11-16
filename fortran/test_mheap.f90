@@ -44,7 +44,7 @@ subroutine test_mheap(cap)
    ! init a heap with the array comparison value, that
    ! compares the nodes' first component to order the heap
 
-   call heap_init(heap,indx,cap)
+   call heap_init(indx,cap)
 
    ! insert some data
    call heap_insert(heap,indx,cap,heap_length,tree_length, [1,2],field,nx,ny )
