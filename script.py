@@ -47,7 +47,9 @@ class WDT:
         space = np.ones(grey_scales.shape, dtype=np.bool)
         space[obstacles] = False
         plt.imshow(space)
+        plt.colorbar()
         plt.show()
+
         space[exits] = False
         # Cost field: Inversely proportional to greyscale values
         cost_field = np.empty(data[:, :, 0].shape)

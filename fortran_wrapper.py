@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-from fortran.wdt import weighted_distance_transform
+from lib._wdt import weighted_distance_transform
 from scipy.misc import imread
 import time
 from script import WDT
