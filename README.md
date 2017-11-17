@@ -38,18 +38,18 @@ python3 setup.py install
 
 ### Usage:
 
-The original use case of this script is creating motion planners for 2D maps (in [crowd dynamics](https://symbols.hotell.kau.se/2016/11/30/mercurial/)). We identify goals with _red_, obstacles in _black_, and accessible space in _white_. The corresponding color mapping is included.
+The original use case of this script is creating motion planners for 2D environments (in [crowd dynamics](https://symbols.hotell.kau.se/2016/11/30/mercurial/)). We identify goals with _red_, obstacles in _black_, and accessible space in _white_. The corresponding color mapping is included.
 You can use any color (except full red) to indicate an area that is less easily accessible (and preferably should be avoided). The darker the colour (mapped to a greyscale), the more difficult it is to move through.
 
-Since this mapping is pretty arbitrary, you can provide your own in the python file `wdt.py`.
+Since this mapping is pretty arbitrary, you can provide your own in `wdt.py`.
 
 Once you created an image, you can provide it to the script as shown below. 
-Otherwise, run the script with some example figures (like `images/ex1.png`).
+`example.py` runs the code below.
 
 ```python
 import wdt
-cost_field = wdt.load('images/ex1.png')
-weighted_distance_transform = wdt.compute(cost_field)
+cost_field = wdt.map_image_to_costs('images/ex2.png')
+distance_transform = wdt.get_weighted_distance_transform(cost_field)
 wdt.plot(weighted_distane_transform)
 ```
 
