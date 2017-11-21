@@ -63,8 +63,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## References
 
-Algorithms inspired by
-* [Tsitsiklis](http://www.mit.edu/~jnt/dijkstra.html)
-* [Treuille et al.](http://grail.cs.washington.edu/projects/crowd-flows/78-treuille.pdf)
-
-Heap implementation based on Daniel Pena's [mheap](https://github.com/trifling/mheap)
+ - Algorithms inspired by
+    * [Tsitsiklis](http://www.mit.edu/~jnt/dijkstra.html)
+    * [Treuille et al.](http://grail.cs.washington.edu/projects/crowd-flows/78-treuille.pdf)
+ - Heap implementation based on Daniel Pena's [mheap](https://github.com/trifling/mheap)
+ - Uses `f2py` to create Python libraries
