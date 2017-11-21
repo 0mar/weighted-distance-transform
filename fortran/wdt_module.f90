@@ -187,7 +187,7 @@ cell_indicators = UNKNOWN
 
 heap_length = 0
 tree_length = 0
-heap_capacity = (n_x+n_y)*10 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
+heap_capacity = (n_x+n_y)*1000 ! Todo: This number is pretty arbitrary. I think it should be hc = a*(nx+ny) + b*(#exits)
 allocate(cand_heap(0:1,0:heap_capacity-1))
 allocate(indx(0:heap_capacity-1))
 call heap_init(indx,heap_capacity)
