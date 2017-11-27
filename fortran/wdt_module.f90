@@ -112,18 +112,15 @@ contains
             endif
     end do
 
-    if (hor_cost >= obstacle_value) then
-        !write(*,*) "Horizontal obstacle_valueinite"
+    if (hor_potential >= obstacle_value) then
         a = 1. / (ver_cost * ver_cost)
         b = -2. * ver_potential / (ver_cost * ver_cost)
         c = (ver_potential / ver_cost) * (ver_potential / ver_cost) -1
-    elseif (ver_cost >=obstacle_value) then
-        !write(*,*) "Vertical obstacle_valueinite"
+    elseif (ver_potential >=obstacle_value) then
         a = 1. / (hor_cost * hor_cost)
         b = -2. * hor_potential / (hor_cost * hor_cost)
         c = (hor_potential / hor_cost) * (hor_potential / hor_cost) -1
     else
-        !write(*,*) "All good"
         a = 1. / (hor_cost * hor_cost) + 1. / (ver_cost * ver_cost)
         b = -2. * (hor_potential / (hor_cost * hor_cost) + ver_potential / (ver_cost * ver_cost))
         c = (hor_potential / hor_cost) * (hor_potential / hor_cost) + (ver_potential / ver_cost) * (ver_potential / ver_cost) - 1
