@@ -30,7 +30,7 @@ contains
             nb_x = sign(mod(direction+1,2),direction-1) + cell_x
             nb_y = sign(mod(direction,2),direction-2) + cell_y
             if (exists(nb_x,nb_y)==1)  then
-                if (wdt_field(nb_x,nb_y) == unknown_value) then
+                if (wdt_field(nb_x,nb_y) > obstacle_value) then
                     cand_cells(direction,0) = nb_x
                     cand_cells(direction,1) = nb_y
                 end if
@@ -154,7 +154,7 @@ integer (kind=4) :: n_x,n_y
 real (kind=8):: obs_val
 
 integer (kind=4), dimension(0:3,0:1) :: new_cand_cells
-integer (kind=4), dimension(0:1) :: best_cell
+integer (kind=4), dimension(0:1) :: best_cell, new_cell
 
 integer (kind=4), allocatable, dimension(:,:) :: cand_heap
 integer (kind=4), allocatable, dimension(:) :: indx
@@ -188,7 +188,6 @@ heap_capacity = (n_x+n_y)*1000 ! Todo: This number is pretty arbitrary. I think 
 allocate(cand_heap(0:1,0:heap_capacity-1))
 allocate(indx(0:heap_capacity-1))
 call heap_init(indx,heap_capacity)
-write(*,*) "Initial phase"
 
 do j=0,n_y-1
     do i=0,n_x-1
@@ -196,7 +195,10 @@ do j=0,n_y-1
             ! No cost, so this is an exit
             wdt_field(i,j) = 0
             cell_indicators(i,j) = KNOWN
-            call heap_insert(cand_heap,indx,heap_capacity,heap_length,tree_length,[i,j],wdt_field,n_x,n_y)
+            new_cell(0) = i
+            new_cell(1) = j
+            call heap_insert(cand_heap,indx,heap_capacity,heap_length,tree_length,new_cell,wdt_field,n_x,n_y)
+
         elseif (cost_field(i,j)>=obstacle_value) then
             ! 'infinite cost', so this is an obstacle
             wdt_field(i,j) = obstacle_value
@@ -204,14 +206,12 @@ do j=0,n_y-1
         endif
     enddo
 enddo
-write(*,*) "Level set"
 ! Iteration of level set
 do while (.true.)
     if (heap_length==0) then
         exit
     end if
     call heap_pop(cand_heap, indx, heap_capacity, heap_length, wdt_field, n_x, n_y, best_cell)
-    write(*,*) "Justed popped",best_cell
     call new_candidate_cells(best_cell(0),best_cell(1),wdt_field,n_x,n_y,new_cand_cells)
     do l=0,3
         i = new_cand_cells(l,0)
@@ -220,7 +220,9 @@ do while (.true.)
             call propagate_dist(i,j,wdt_field,costs_x,costs_y,n_x,n_y,dist)
             if (wdt_field(i,j) >= dist) then
                 wdt_field(i,j) = dist
-                call heap_insert(cand_heap,indx,heap_capacity,heap_length,tree_length,[i,j],wdt_field,n_x,n_y)
+                new_cell(0) = i
+                new_cell(1) = j
+                call heap_insert(cand_heap,indx,heap_capacity,heap_length,tree_length,new_cell,wdt_field,n_x,n_y)
             end if
         end if
     end do

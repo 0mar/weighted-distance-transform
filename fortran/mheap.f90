@@ -68,7 +68,6 @@ subroutine heap_insert(heap,indx,cap,heap_length,tree_length,node,field,nx,ny)
   heap_length = heap_length + 1
   tree_length = tree_length + 1
   heap(:,indx(heap_length-1)) = node
-  write(*,*) "inserted node",node
 
   ! re-index the heap from the bottom up
   k2 = heap_length
@@ -94,7 +93,7 @@ subroutine heap_pop(heap, indx, cap, heap_length, field, nx, ny, node)
   integer (kind=4), intent(in) :: cap
   integer (kind=4), intent(inout) :: heap_length
   integer (kind=4), intent(in), dimension(0:1,0:cap-1) :: heap
-  integer (kind=4), intent(in), dimension(0:cap-1) :: indx
+  integer (kind=4), intent(inout), dimension(0:cap-1) :: indx
   integer (kind=4), intent(out), dimension(0:1) :: node
   integer (kind=4), intent(in) :: nx, ny
   real (kind=8), intent(in), dimension(0:nx-1,ny-1) :: field
@@ -105,7 +104,8 @@ subroutine heap_pop(heap, indx, cap, heap_length, field, nx, ny, node)
   node = heap(:,indx(0))
   call swapint(indx(0), indx(heap_length-1))
   heap_length = heap_length-1
-  call heap_grow(heap,indx, cap, heap_length, field, nx, ny, 1) ! 1 instead of 0 because of indexing artifact
+
+  call heap_grow(heap,indx, cap, heap_length, field, nx, ny, 1) !1 instead of 0 because of indexing artifact
 
 end subroutine heap_pop
 
@@ -133,7 +133,7 @@ subroutine heap_grow(heap,indx, cap, heap_length, field, nx, ny, ktemp)
   integer (kind=4), intent(in) :: cap
   integer (kind=4), intent(inout) :: heap_length
   integer (kind=4), intent(in), dimension(0:1,0:cap-1) :: heap
-  integer (kind=4), intent(in), dimension(0:cap-1) :: indx
+  integer (kind=4), intent(inout), dimension(0:cap-1) :: indx
   integer (kind=4), intent(in) :: nx, ny
   real (kind=8), intent(in), dimension(0:nx-1,ny-1) :: field
   integer (kind=4) :: i, k, il, ir
@@ -182,7 +182,7 @@ subroutine heap_reheap(heap,indx, cap, heap_length, tree_length, field, nx, ny)
   integer (kind=4), intent(in) :: cap
   integer (kind=4), intent(inout) :: heap_length, tree_length
   integer (kind=4), intent(in), dimension(0:1,0:cap-1) :: heap
-  integer (kind=4), intent(in), dimension(0:cap-1) :: indx
+  integer (kind=4), intent(inout), dimension(0:cap-1) :: indx
   integer (kind=4), intent(in) :: nx, ny
   real (kind=8), intent(in), dimension(0:nx-1,ny-1) :: field
   integer                      :: k
@@ -200,7 +200,8 @@ subroutine heap_reheap(heap,indx, cap, heap_length, tree_length, field, nx, ny)
 end subroutine heap_reheap
 
 subroutine swapint( i, k )
-  integer (kind=4) :: i, k, t
+  integer (kind=4), intent(inout):: i, k
+  integer (kind=4) :: t
   t = i
   i = k
   k = t
