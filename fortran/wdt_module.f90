@@ -56,7 +56,7 @@ contains
     real (kind=8) :: pot,cost
     real (kind=8), intent(out) :: out_pot
 
-    neighbour_pots=  (/ obstacle_value, obstacle_value, obstacle_value, obstacle_value /) 
+    neighbour_pots=  (/ obstacle_value, obstacle_value, obstacle_value, obstacle_value /)
     hor_cost = obstacle_value
     ver_cost = obstacle_value
         ! Find the minimal directions along a grid cell.
@@ -94,7 +94,7 @@ contains
             else
                 !write(*,*) "Exception in compute_potential"
             endif
-             
+
             neighbour_pots(direction) = pot + cost
             ! total potential
             if (neighbour_pots(direction) < neighbour_pots(mod(direction+2,4))) then
@@ -179,8 +179,8 @@ costs_y = obstacle_value
 costs_y(:,1:n_y-1) = (cost_field(:,1:n_y-1) + cost_field(:,0:n_y-2))/2
 
 !Initialize locations (known(exit/obstacles)/unknown)
-wdt_field = unknown_value 
-cell_indicators = UNKNOWN 
+wdt_field = unknown_value
+cell_indicators = UNKNOWN
 
 heap_length = 0
 tree_length = 0
@@ -188,6 +188,7 @@ heap_capacity = (n_x+n_y)*1000 ! Todo: This number is pretty arbitrary. I think 
 allocate(cand_heap(0:1,0:heap_capacity-1))
 allocate(indx(0:heap_capacity-1))
 call heap_init(indx,heap_capacity)
+write(*,*) "Initial phase"
 
 do j=0,n_y-1
     do i=0,n_x-1
@@ -203,14 +204,14 @@ do j=0,n_y-1
         endif
     enddo
 enddo
-
+write(*,*) "Level set"
 ! Iteration of level set
 do while (.true.)
     if (heap_length==0) then
         exit
     end if
     call heap_pop(cand_heap, indx, heap_capacity, heap_length, wdt_field, n_x, n_y, best_cell)
-
+    write(*,*) "Justed popped",best_cell
     call new_candidate_cells(best_cell(0),best_cell(1),wdt_field,n_x,n_y,new_cand_cells)
     do l=0,3
         i = new_cand_cells(l,0)
@@ -255,4 +256,3 @@ program test_wdt
     write(k) wdt_field
     close(k)
 end program
-
