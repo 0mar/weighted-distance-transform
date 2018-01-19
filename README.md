@@ -16,7 +16,7 @@ This script implements a fast marching algorithm in Fortran, compiled to a Pytho
 ### How does it work?
 
 ![Image with text](/images/cover_example.png?raw=true "Example image")
-Input (left): A PNG/JPG image with with boundaries/exits from which to compute the distance (red), obstacles (full black), normal space (white), less 'accessible space' (grey-ish).
+Input (left): A PNG/JPG image with with boundaries/exits from which to compute the distance (green), obstacles (full black), normal space (white), less 'accessible space' (grey-ish).
 
 Output (right): A distance transform. Image plotted in Matplotlib.
 ### Installing
@@ -38,8 +38,8 @@ python3 setup.py install
 
 ### Usage:
 
-The original use case of this script is creating motion planners for 2D environments (in [crowd dynamics](https://symbols.hotell.kau.se/2016/11/30/mercurial/)). We identify goals with _red_, obstacles in _black_, and accessible space in _white_. The corresponding color mapping is included.
-You can use any color (except full red) to indicate an area that is less easily accessible (and preferably should be avoided). The darker the colour (mapped to a greyscale), the more difficult it is to move through.
+The original use case of this script is creating motion planners for 2D environments (in [crowd dynamics](https://symbols.hotell.kau.se/2016/11/30/mercurial/)). We identify goals with _green_, obstacles in _black_, and accessible space in _white_. The corresponding color mapping is included.
+You can use any color (except green) to indicate an area that is less easily accessible (and preferably should be avoided). The darker the colour (mapped to a greyscale), the more difficult it is to move through.
 
 Since this mapping is pretty arbitrary, you can provide your own in `wdt.py`.
 
