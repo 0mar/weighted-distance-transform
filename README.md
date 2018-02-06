@@ -15,7 +15,7 @@ This script implements a fast marching algorithm in Fortran, compiled to a Pytho
 
 ### How does it work?
 
-![Image with text](/images/cover_example.png?raw=true "Example image")
+![Example image](/images/cover_example.png?raw=true "Example of WDT in action")
 Input (left): A PNG/JPG image with with boundaries/exits from which to compute the distance (green), obstacles (full black), normal space (white), less 'accessible space' (grey-ish).
 
 Output (right): A distance transform. Image plotted in Matplotlib.
